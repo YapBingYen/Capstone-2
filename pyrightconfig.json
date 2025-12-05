@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/pyright/main/packages/pyright/config.schema.json",
+  "typeCheckingMode": "basic",
+  "venvPath": ".",
+  "venv": ".venv39",
+  "reportMissingImports": "none",
+  "reportUnknownMemberType": "none",
+  "reportUnknownVariableType": "none",
+  "reportAttributeAccessIssue": "none",
+  "extraPaths": [
+    "120 transfer now/120 transfer now"
+  ]
+}

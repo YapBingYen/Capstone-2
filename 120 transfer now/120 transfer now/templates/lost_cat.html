@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Lost Cat - Pet ID Malaysia</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+                <i class="bi bi-shield-check text-primary me-2"></i>
+                <span class="fw-bold text-primary">Pet ID Malaysia</span>
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="bi bi-house me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('found_cat') }}">
+                            <i class="bi bi-camera me-1"></i>Found a Cat?
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('lost_cat') }}">
+                            <i class="bi bi-exclamation-circle me-1"></i>Report Lost Cat
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('view_found_cats') }}">
+                            <i class="bi bi-grid-3x3-gap me-1"></i>View Found Cats
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('view_lost_cats') }}">
+                            <i class="bi bi-search-heart me-1"></i>View Lost Cats
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('reunited_cats') }}">
+                            <i class="bi bi-heart-fill me-1"></i>Reunited
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('about') }}">
+                            <i class="bi bi-info-circle me-1"></i>About
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('contact') }}">
+                            <i class="bi bi-envelope me-1"></i>Contact
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <section class="page-header text-center">
+        <div class="container">
+            <div class="badge bg-white text-danger mb-3 rounded-pill px-3 py-2 shadow-sm">
+                <i class="bi bi-exclamation-circle-fill me-2"></i>Report Lost Cat
+            </div>
+            <h1 class="display-4 fw-bold mb-3">Lost Your Cat?</h1>
+            <p class="lead mx-auto" style="max-width: 600px;">
+                Post a listing to alert the community and help bring your cat home.
+            </p>
+        </div>
+    </section>
+
+    <section class="py-5 bg-light" style="margin-top: -5rem;">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="card border-0 shadow-lg">
+                        <div class="card-body p-5">
+                            {% with messages = get_flashed_messages(with_categories=true) %}
+                                {% if messages %}
+                                    {% for category, message in messages %}
+                                        <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                                            {{ message }}
+                                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                        </div>
+                                    {% endfor %}
+                                {% endif %}
+                            {% endwith %}
+
+                            <h5 class="card-title text-center mb-4">
+                                <i class="bi bi-camera me-2"></i>Upload Lost Cat Details
+                            </h5>
+
+                            <form action="{{ url_for('upload_lost_cat') }}" method="post" enctype="multipart/form-data" id="lostCatForm">
+                                <!-- Image Upload (Drag & Drop) -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">
+                                        <i class="bi bi-image me-2"></i>Cat Photo *
+                                    </label>
+                                    <div class="drag-drop-area" id="dragDropArea">
+                                        <div class="drag-drop-content">
+                                            <i class="bi bi-cloud-upload upload-icon"></i>
+                                            <h6 class="mt-3 mb-2">Drag & Drop the cat photo here</h6>
+                                            <p class="text-muted mb-3">or click to browse</p>
+                                            <button type="button" class="btn btn-outline-primary" id="chooseFileBtn">
+                                                <i class="bi bi-folder-open me-2"></i>Choose File
+                                            </button>
+                                        </div>
+
+                                        <!-- Hidden File Input -->
+                                        <input type="file" name="file" id="fileInput" accept=".jpg,.jpeg,.png" style="display: none;" required>
+
+                                        <!-- File Preview -->
+                                        <div id="filePreview" style="display: none;">
+                                            <img id="previewImage" class="img-fluid rounded mb-3" alt="Preview" loading="lazy">
+                                            <h6 id="fileName" class="text-muted mb-2"></h6>
+                                            <p id="fileSize" class="text-muted small mb-3"></p>
+                                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearFile()">
+                                                <i class="bi bi-trash me-1"></i>Remove
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="text-center mt-2">
+                                        <small class="text-info d-block mb-2">
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            Supported formats: JPG, JPEG, PNG (Max 16MB)
+                                        </small>
+                                        <small class="text-muted" style="font-size: 0.8rem;">
+                                            <i class="bi bi-lightbulb me-1"></i>
+                                            <strong>Tip:</strong> Upload the clearest photo you have of your cat's face and markings.
+                                        </small>
+                                    </div>
+                                </div>
+
+                                <!-- Name -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold"><i class="bi bi-tag me-2"></i>Cat Name <span class="text-muted">(Don't know the name? Give it one)</span></label>
+                                    <input type="text" class="form-control" name="cat_name" placeholder="e.g., Ginger, Shadow" maxlength="64">
+                                </div>
+
+                                <!-- Last Seen Location -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold"><i class="bi bi-geo-alt me-2"></i>Last Seen Location *</label>
+                                    <input type="text" class="form-control" name="location" placeholder="e.g., Near Central Park, Kuala Lumpur" required maxlength="128">
+                                </div>
+
+                                <!-- Date Lost -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold"><i class="bi bi-calendar me-2"></i>Date Lost</label>
+                                    <input type="date" class="form-control" name="date_lost" value="{{ today }}" max="{{ today }}">
+                                </div>
+
+                                <!-- Profile -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold"><i class="bi bi-person-lines-fill me-2"></i>Cat Profile</label>
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label">Gender</label>
+                                            <select class="form-select" name="cat_gender">
+                                                <option value="Unknown" selected>Not Sure</option>
+                                                <option value="Male">Male</option>
+                                                <option value="Female">Female</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Age (Years)</label>
+                                            <input type="number" min="0" class="form-control" name="age_years" placeholder="e.g., 4">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Age (Months)</label>
+                                            <input type="number" min="0" max="11" class="form-control" name="age_months" placeholder="e.g., 6">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Vaccinated</label>
+                                            <select class="form-select" name="vaccinated">
+                                                <option value="Unknown" selected>Not Sure</option>
+                                                <option value="Yes">Yes</option>
+                                                <option value="No">No</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Dewormed</label>
+                                            <select class="form-select" name="dewormed">
+                                                <option value="Unknown" selected>Not Sure</option>
+                                                <option value="Yes">Yes</option>
+                                                <option value="No">No</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Spayed/Neutered</label>
+                                            <select class="form-select" name="spayed">
+                                                <option value="Unknown" selected>Not Sure</option>
+                                                <option value="Yes">Yes</option>
+                                                <option value="No">No</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Condition</label>
+                                            <select class="form-select" name="condition">
+                                                <option value="Healthy" selected>Healthy</option>
+                                                <option value="Minor Injury">Minor Injury</option>
+                                                <option value="Serious Injury">Serious Injury</option>
+                                                <option value="Illness">Illness</option>
+                                                <option value="Malnourished">Malnourished</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Body Size</label>
+                                            <select class="form-select" name="body_size">
+                                                <option value="Unknown" selected>Not Sure</option>
+                                                <option value="Small">Small</option>
+                                                <option value="Medium">Medium</option>
+                                                <option value="Large">Large</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Fur Length</label>
+                                            <select class="form-select" name="fur_length">
+                                                <option value="Unknown" selected>Not Sure</option>
+                                                <option value="Short">Short</option>
+                                                <option value="Medium">Medium</option>
+                                                <option value="Long">Long</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Color(s)</label>
+                                            <input type="text" class="form-control" name="color" placeholder="e.g., Brown, Cream, White" maxlength="128">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Breed</label>
+                                            <select class="form-select" name="breed">
+                                                <option value="Unknown" selected>Unknown</option>
+                                                <option value="Abyssinian">Abyssinian</option>
+                                                <option value="Bengal">Bengal</option>
+                                                <option value="Birman">Birman</option>
+                                                <option value="Bombay">Bombay</option>
+                                                <option value="British_Shorthair">British Shorthair</option>
+                                                <option value="Domestic_Shorthair">Domestic Shorthair</option>
+                                                <option value="Egyptian_Mau">Egyptian Mau</option>
+                                                <option value="Maine_Coon">Maine Coon</option>
+                                                <option value="Persian">Persian</option>
+                                                <option value="Ragdoll">Ragdoll</option>
+                                                <option value="Russian_Blue">Russian Blue</option>
+                                                <option value="Siamese">Siamese</option>
+                                                <option value="Sphynx">Sphynx</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Description -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold"><i class="bi bi-card-text me-2"></i>Description</label>
+                                    <textarea class="form-control" name="description" rows="4" placeholder="Describe the cat and any identifying features." maxlength="1000"></textarea>
+                                </div>
+
+                                <!-- Contact -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold"><i class="bi bi-telephone me-2"></i>Your Contact Information</label>
+                                    <input type="text" class="form-control" name="contact_info" placeholder="Phone number or email" maxlength="128">
+                                </div>
+
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-danger btn-lg" id="submitBtn" disabled>
+                                        <i class="bi bi-upload me-2"></i>Post Lost Cat
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Drag & Drop
+        const dragDropArea = document.getElementById('dragDropArea');
+        const fileInput = document.getElementById('fileInput');
+        const chooseFileBtn = document.getElementById('chooseFileBtn');
+        const filePreview = document.getElementById('filePreview');
+        const previewImage = document.getElementById('previewImage');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const lostCatForm = document.getElementById('lostCatForm');
+        const submitBtn = document.getElementById('submitBtn');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dragDropArea.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+        ['dragenter', 'dragover'].forEach(eventName => { dragDropArea.addEventListener(eventName, highlight, false); });
+        ['dragleave', 'drop'].forEach(eventName => { dragDropArea.addEventListener(eventName, unhighlight, false); });
+        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+        function highlight() { dragDropArea.classList.add('drag-over'); }
+        function unhighlight() { dragDropArea.classList.remove('drag-over'); }
+
+        dragDropArea.addEventListener('drop', handleDrop, false);
+        function handleDrop(e) { const dt = e.dataTransfer; handleFiles(dt.files); }
+        fileInput.addEventListener('click', function(){ fileInput.value = ''; });
+        fileInput.addEventListener('change', function(){ handleFiles(this.files); });
+        function handleFiles(files) { if (files.length > 0) processFile(files[0]); }
+        function processFile(file) {
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+            if (!allowedTypes.includes(file.type)) { alert('Please upload a JPG, JPEG, or PNG file.'); return; }
+            if (file.size > 16 * 1024 * 1024) { alert('File is too large. Please upload an image smaller than 16MB.'); return; }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImage.src = e.target.result;
+                fileName.textContent = file.name;
+                fileSize.textContent = formatFileSize(file.size);
+                document.querySelector('.drag-drop-content').style.display = 'none';
+                filePreview.style.display = 'block';
+                submitBtn.disabled = false;
+                const dt = new DataTransfer(); dt.items.add(file); fileInput.files = dt.files;
+            };
+            reader.readAsDataURL(file);
+        }
+        function clearFile() {
+            fileInput.value=''; previewImage.src=''; fileName.textContent=''; fileSize.textContent='';
+            document.querySelector('.drag-drop-content').style.display='block'; filePreview.style.display='none';
+            submitBtn.disabled=true;
+        }
+        function formatFileSize(bytes){ if(bytes===0) return '0 Bytes'; const k=1024; const sizes=['Bytes','KB','MB','GB']; const i=Math.floor(Math.log(bytes)/Math.log(k)); return parseFloat((bytes/Math.pow(k,i)).toFixed(2))+' '+sizes[i]; }
+        dragDropArea.addEventListener('click', function(e){ if (e.target===dragDropArea || e.target.closest('.drag-drop-content')) { fileInput.value=''; fileInput.click(); } });
+        chooseFileBtn.addEventListener('click', function(e){ e.stopPropagation(); fileInput.value=''; fileInput.click(); });
+    </script>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-content">
+            <div class="spinner-border text-danger mb-3" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <h5>Posting Lost Cat...</h5>
+            <p class="text-muted">Processing image and adding to database</p>
+        </div>
+    </div>
+    <script>
+        document.querySelector('#lostCatForm').addEventListener('submit', function(){
+            document.getElementById('loadingOverlay').style.display='flex';
+        });
+    </script>
+</body>
+</html>

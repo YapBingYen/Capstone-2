@@ -1,0 +1,129 @@
+# Cat Identity Recognition - .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+.venv39/
+.venv-directml/
+tf_gpu/
+tf_gpu39/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# IDEs
+.vscode/
+.idea/
+.trae/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Training artifacts
+cat_identity_model.h5
+cat_identity_model_finetuned.h5
+*.h5
+cat_embeddings.npz
+cat_metadata.csv
+training_history.json
+training_history.png
+demo_embeddings.npz
+demo_metadata.csv
+
+# Generated visualizations
+embeddings_tsne.png
+embeddings_pca.png
+similarity_distribution.png
+comparison_result.png
+*.png
+*.jpg
+*.jpeg
+
+# Datasets (large files)
+dataset/
+dataset_cropped/
+dataset_individuals/
+dataset_individuals_cropped/
+dataset_individuals_cropped_v2/
+dataset_individuals_cropped_v3/
+
+# Logs
+*.log
+logs/
+tensorboard_logs/
+
+# Checkpoints
+checkpoints/
+*.ckpt
+*.pb
+
+# OS specific
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+temp/
+tmp/
+
+# Model exports
+*.tflite
+*.onnx
+saved_model/
+
+# Large files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+*.MOV
+*.mov
+*.mp4
+*.avi
+
+# Test outputs
+test_outputs/
+outputs/
+results/
+
+# Caches
+cat_embeddings_cache.npy
+cat_metadata_cache.json
+
+# Optional: Keep a small sample dataset
+!dataset/sample/
+!dataset_cropped/sample/
+
+# Vercel
+.vercel/
+.vercelignore
+vercel.json

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--
+    Pet ID Malaysia - About Page Template
+    Information about the AI pet recognition system
+
+    Features: Company info, technology details, team information
+    Framework: Bootstrap 5 with custom CSS styling
+    -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - Pet ID Malaysia</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+                <i class="bi bi-shield-check text-primary me-2"></i>
+                <span class="fw-bold text-primary">Pet ID Malaysia</span>
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="bi bi-house me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('found_cat') }}">
+                            <i class="bi bi-camera me-1"></i>Found a Cat?
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('lost_cat') }}">
+                            <i class="bi bi-exclamation-circle me-1"></i>Report Lost Cat
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('view_found_cats') }}">
+                            <i class="bi bi-grid-3x3-gap me-1"></i>View Found Cats
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('view_lost_cats') }}">
+                            <i class="bi bi-search-heart me-1"></i>View Lost Cats
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('reunited_cats') }}">
+                            <i class="bi bi-heart-fill me-1"></i>Reunited
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('about') }}">
+                            <i class="bi bi-info-circle me-1"></i>About
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('contact') }}">
+                            <i class="bi bi-envelope me-1"></i>Contact
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <section class="page-header py-5 bg-primary bg-gradient text-white">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h1 class="display-4 fw-bold mb-3">About Pet ID Malaysia</h1>
+                    <p class="lead mb-0">
+                        Using advanced AI technology to help reunite lost pets with their families across Malaysia
+                    </p>
+                </div>
+                <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                    <div class="d-flex justify-content-lg-end gap-2">
+                        <div class="text-center">
+                            <h3 class="fw-bold">1000+</h3>
+                            <small>Pets in Database</small>
+                        </div>
+                        <div class="text-center">
+                            <h3 class="fw-bold">95%</h3>
+                            <small>Success Rate</small>
+                        </div>
+                        <div class="text-center">
+                            <h3 class="fw-bold">500+</h3>
+                            <small>Families Helped</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Mission Section -->
+    <section class="py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-4 mb-lg-0">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDUwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjhGOUZBIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjEwMCIgcj0iMzAiIGZpbGw9IiM0Q0FGNTAiLz4KPGNpcmNsZSBjeD0iNDAwIiBjeT0iMTAwIiByPSIzMCIgZmlsbD0iI0Y0N0Y1MiIvPgo8Y2lyY2xlIGN4PSIyNTAiIGN5PSIyMDAiIHI9IjQwIiBmaWxsPSIjMUQ3RkE4Ii8+CjxjaXJjbGUgY3g9IjE1MCIgY3k9IjMwMCIgcj0iMjUiIGZpbGw9IiNGRkI3MjEiLz4KPGNpcmNsZSBjeD0iMzUwIiBjeT0iMzAwIiByPSIyNSIgZmlsbD0iIzY3NzJENyIvPgo8cGF0aCBkPSJNMTAwIDEwMEMxMzAgMjAwIDE1MCAyNTAgMjUwIDIwMEMzNTAgMTUwIDM3MCAxMDAgNDAwIDEwMFwiIHN0cm9rZT0iIzMzMyIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBkYXNoYXJyYXk9IjUsNSIvPgo8dGV4dCB4PSIyNTAiIHk9IjM4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzMzMyIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiPkFJIFBldCBSZWNvZ25pdGlvbiBOZXR3b3JrPC90ZXh0Pgo8L3N2Zz4K"
+                         class="img-fluid rounded"
+                         alt="AI Pet Recognition Network">
+                </div>
+                <div class="col-lg-6">
+                    <h2 class="display-5 fw-bold mb-4">Our Mission</h2>
+                    <p class="lead text-primary mb-4">
+                        Reuniting lost pets with their families through the power of artificial intelligence
+                    </p>
+                    <p class="mb-4">
+                        Pet ID Malaysia was founded with a simple yet powerful mission: to leverage cutting-edge AI technology
+                        to help pet owners find their missing companions. Every year, thousands of pets go missing in Malaysia,
+                        and we believe that technology can make a real difference in bringing them home safely.
+                    </p>
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-start">
+                                <i class="bi bi-check-circle-fill text-success me-3 mt-1"></i>
+                                <div>
+                                    <h6 class="mb-1">Advanced AI Technology</h6>
+                                    <p class="text-muted mb-0 small">State-of-the-art facial recognition algorithms</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-start">
+                                <i class="bi bi-check-circle-fill text-success me-3 mt-1"></i>
+                                <div>
+                                    <h6 class="mb-1">24/7 Availability</h6>
+                                    <p class="text-muted mb-0 small">Always here to help you find your pet</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-start">
+                                <i class="bi bi-check-circle-fill text-success me-3 mt-1"></i>
+                                <div>
+                                    <h6 class="mb-1">Free Service</h6>
+                                    <p class="text-muted mb-0 small">No cost to search for your missing pet</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-start">
+                                <i class="bi bi-check-circle-fill text-success me-3 mt-1"></i>
+                                <div>
+                                    <h6 class="mb-1">Privacy Protected</h6>
+                                    <p class="text-muted mb-0 small">Your data and images are kept secure</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-5 fw-bold mb-3">How Our AI Works</h2>
+                <p class="lead text-muted">Advanced technology powering pet recognition</p>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-lg-3 col-md-6">
+                    <div class="text-center">
+                        <div class="process-icon bg-primary bg-gradient text-white rounded-circle mx-auto mb-3">
+                            <i class="bi bi-camera"></i>
+                        </div>
+                        <h5>1. Image Upload</h5>
+                        <p class="text-muted">Upload a clear photo of the lost pet from any device</p>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="text-center">
+                        <div class="process-icon bg-success bg-gradient text-white rounded-circle mx-auto mb-3">
+                            <i class="bi bi-cpu"></i>
+                        </div>
+                        <h5>2. AI Analysis</h5>
+                        <p class="text-muted">Our AI analyzes facial features and unique patterns</p>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="text-center">
+                        <div class="process-icon bg-info bg-gradient text-white rounded-circle mx-auto mb-3">
+                            <i class="bi bi-database"></i>
+                        </div>
+                        <h5>3. Database Search</h5>
+                        <p class="text-muted">Compare against thousands of pets in our database</p>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="text-center">
+                        <div class="process-icon bg-warning bg-gradient text-white rounded-circle mx-auto mb-3">
+                            <i class="bi bi-search"></i>
+                        </div>
+                        <h5>4. Instant Results</h5>
+                        <p class="text-muted">Receive potential matches with similarity scores</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Technology Section -->
+    <section class="py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 order-lg-2 mb-4 mb-lg-0">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDUwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjhGOUZBIi8+CjxyZWN0IHg9IjUwIiB5PSI1MCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIzMDAiIHJ4PSIxNSIgZmlsbD0iI0Y4RjlGRSIgc3Ryb2tlPSIjRDJEMkQyIiBzdHJva2Utd2lkdGg9IjIiLz4KPHJlY3QgeD0iMjI1IiB5PSI1MCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIzMDAiIHJ4PSIxNSIgZmlsbD0iI0Y4RjlGRSIgc3Ryb2tlPSIjRDJEMkQyIiBzdHJva2Utd2lkdGg9IjIiLz4KPHJlY3QgeD0iNDAwIiB5PSI1MCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIzMDAiIHJ4PSIxNSIgZmlsbD0iI0Y4RjlGRSIgc3Ryb2tlPSIjRDJEMkQyIiBzdHJva2Utd2lkdGg9IjIiLz4KPGNpcmNsZSBjeD0iMTI1IiBjeT0iMjAwIiByPSI0MCIgZmlsbD0iIzRDQUY1MCIvPgo8Y2lyY2xlIGN4PSIzMDAiIGN5PSIyMDAiIHI9IjQwIiBmaWxsPSIjRjQ3RjUyIi8+CjxjaXJjbGUgY3g9IjQ3NSIgY3k9IjIwMCIgcj0iNDAiIGZpbGw9IiMxRDdGQTgiLz4KPHBhdGggZD0iTTEyNSAyMDBMMzAwIDIwMEw0NzUgMjAwXCIgc3Ryb2tlPSIjMzMzIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz4KPHRleHQgeD0iMjUwIiB5PSIzNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMzMzMiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSJib2xkIj5EZWVwIExlYXJuaW5nIE5ldHdvcms8L3RleHQ+Cjwvc3ZnPgo="
+                         class="img-fluid rounded"
+                         alt="Deep Learning Network">
+                </div>
+                <div class="col-lg-6 order-lg-1">
+                    <h2 class="display-5 fw-bold mb-4">Our Technology</h2>
+                    <p class="lead text-primary mb-4">
+                        Powered by state-of-the-art deep learning algorithms
+                    </p>
+                    <p class="mb-4">
+                        Our AI system uses advanced computer vision and deep learning techniques to analyze pet photos.
+                        The technology is built on EfficientNetV2 architecture, specifically trained for pet facial recognition
+                        with over 95% accuracy rate.
+                    </p>
+
+                    <div class="accordion" id="techAccordion">
+                        <div class="accordion-item border-0 shadow-sm mb-2">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                                    <i class="bi bi-cpu text-primary me-3"></i>
+                                    EfficientNetV2 Architecture
+                                </button>
+                            </h2>
+                            <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#techAccordion">
+                                <div class="accordion-body">
+                                    State-of-the-art convolutional neural network optimized for accuracy and efficiency in pet recognition tasks.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item border-0 shadow-sm mb-2">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                                    <i class="bi bi-face-smile text-success me-3"></i>
+                                    Facial Feature Extraction
+                                </button>
+                            </h2>
+                            <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#techAccordion">
+                                <div class="accordion-body">
+                                    Advanced algorithms that identify and extract unique facial features, patterns, and markings from pet photos.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item border-0 shadow-sm">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
+                                    <i class="bi bi-database text-info me-3"></i>
+                                    Similarity Matching
+                                </button>
+                            </h2>
+                            <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#techAccordion">
+                                <div class="accordion-body">
+                                    Cosine similarity algorithms that compare extracted features against thousands of pets in our database for accurate matching.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    
+
+    <!-- CTA Section -->
+    <section class="py-5 bg-primary bg-gradient text-white">
+        <div class="container text-center">
+            <h2 class="display-5 fw-bold mb-3">Ready to Find Your Lost Pet?</h2>
+            <p class="lead mb-4">Join thousands of pet owners who have successfully found their companions</p>
+            <a href="{{ url_for('index') }}" class="btn btn-light btn-lg">
+                <i class="bi bi-search me-2"></i>Start Searching Now
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="mb-3">Pet ID Malaysia</h5>
+                    <p class="text-muted">AI-powered pet recognition system helping reunite lost pets with their families.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <h6 class="mb-3">Quick Links</h6>
+                    <div class="d-flex flex-wrap gap-3 justify-content-md-end">
+                        <a href="{{ url_for('index') }}" class="text-light text-decoration-none">Home</a>
+                        <a href="{{ url_for('about') }}" class="text-light text-decoration-none">About</a>
+                        <a href="{{ url_for('contact') }}" class="text-light text-decoration-none">Contact</a>
+                    </div>
+                </div>
+            </div>
+            <hr class="my-3">
+            <div class="text-center">
+                <small class="text-muted">&copy; 2024 Pet ID Malaysia. All rights reserved.</small>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

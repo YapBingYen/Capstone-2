@@ -1,0 +1,12 @@
+<!--
+Pet ID Malaysia - Cat Face Cascade Placeholder
+This file should be replaced with the actual haarcascade_frontalcatface.xml file
+Download from: https://github.com/opencv/opencv/blob/master/data/haarcascades/
+Or use OpenCV's built-in cascades as fallback in the application
+-->
+<!-- Haar Cascade XML placeholder - replace with actual cascade file -->
+<opencv_storage>
+  This is a placeholder file. The application will use OpenCV's built-in cascades
+  if this file is not available. Replace this with your actual haarcascade_frontalcatface.xml
+  file for optimal cat face detection performance.
+</opencv_storage>

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Lost Cats - Pet ID Malaysia</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+                <i class="bi bi-shield-check text-primary me-2"></i>
+                <span class="fw-bold text-primary">Pet ID Malaysia</span>
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="bi bi-house me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('found_cat') }}">
+                            <i class="bi bi-camera me-1"></i>Found a Cat?
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('lost_cat') }}">
+                            <i class="bi bi-exclamation-circle me-1"></i>Report Lost Cat
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('view_found_cats') }}">
+                            <i class="bi bi-grid-3x3-gap me-1"></i>View Found Cats
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('view_lost_cats') }}">
+                            <i class="bi bi-search-heart me-1"></i>View Lost Cats
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('reunited_cats') }}">
+                            <i class="bi bi-heart-fill me-1"></i>Reunited
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('about') }}">
+                            <i class="bi bi-info-circle me-1"></i>About
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('contact') }}">
+                            <i class="bi bi-envelope me-1"></i>Contact
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <section class="page-header text-center">
+        <div class="container">
+            <div class="badge bg-white text-danger mb-3 rounded-pill px-3 py-2 shadow-sm">
+                <i class="bi bi-exclamation-circle me-2"></i>Lost Cats Board
+            </div>
+            <h1 class="display-4 fw-bold mb-3">Lost Cats</h1>
+            <p class="lead mx-auto" style="max-width: 600px;">
+                Browse lost cat reports posted by owners.
+            </p>
+        </div>
+    </section>
+
+    <section class="py-5 bg-light" style="margin-top: -5rem;">
+        <div class="container">
+            <!-- Search Filters -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <form method="GET" class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label"><i class="bi bi-search me-1"></i>Keyword</label>
+                            <input type="text" name="q" class="form-control" value="{{ q or '' }}" placeholder="Name, ID, location, description">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Breed #1</label>
+                            <select name="breed1" class="form-select">
+                                <option value="">Any</option>
+                                <option value="Abyssinian" {% if breed1=='Abyssinian' %}selected{% endif %}>Abyssinian</option>
+                                <option value="Bengal" {% if breed1=='Bengal' %}selected{% endif %}>Bengal</option>
+                                <option value="Birman" {% if breed1=='Birman' %}selected{% endif %}>Birman</option>
+                                <option value="Bombay" {% if breed1=='Bombay' %}selected{% endif %}>Bombay</option>
+                                <option value="British_Shorthair" {% if breed1=='British_Shorthair' %}selected{% endif %}>British Shorthair</option>
+                                <option value="Domestic_Shorthair" {% if breed1=='Domestic_Shorthair' %}selected{% endif %}>Domestic Shorthair</option>
+                                <option value="Egyptian_Mau" {% if breed1=='Egyptian_Mau' %}selected{% endif %}>Egyptian Mau</option>
+                                <option value="Maine_Coon" {% if breed1=='Maine_Coon' %}selected{% endif %}>Maine Coon</option>
+                                <option value="Persian" {% if breed1=='Persian' %}selected{% endif %}>Persian</option>
+                                <option value="Ragdoll" {% if breed1=='Ragdoll' %}selected{% endif %}>Ragdoll</option>
+                                <option value="Russian_Blue" {% if breed1=='Russian_Blue' %}selected{% endif %}>Russian Blue</option>
+                                <option value="Siamese" {% if breed1=='Siamese' %}selected{% endif %}>Siamese</option>
+                                <option value="Sphynx" {% if breed1=='Sphynx' %}selected{% endif %}>Sphynx</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Breed #2</label>
+                            <select name="breed2" class="form-select">
+                                <option value="">Any</option>
+                                <option value="Abyssinian" {% if breed2=='Abyssinian' %}selected{% endif %}>Abyssinian</option>
+                                <option value="Bengal" {% if breed2=='Bengal' %}selected{% endif %}>Bengal</option>
+                                <option value="Birman" {% if breed2=='Birman' %}selected{% endif %}>Birman</option>
+                                <option value="Bombay" {% if breed2=='Bombay' %}selected{% endif %}>Bombay</option>
+                                <option value="British_Shorthair" {% if breed2=='British_Shorthair' %}selected{% endif %}>British Shorthair</option>
+                                <option value="Domestic_Shorthair" {% if breed2=='Domestic_Shorthair' %}selected{% endif %}>Domestic Shorthair</option>
+                                <option value="Egyptian_Mau" {% if breed2=='Egyptian_Mau' %}selected{% endif %}>Egyptian Mau</option>
+                                <option value="Maine_Coon" {% if breed2=='Maine_Coon' %}selected{% endif %}>Maine Coon</option>
+                                <option value="Persian" {% if breed2=='Persian' %}selected{% endif %}>Persian</option>
+                                <option value="Ragdoll" {% if breed2=='Ragdoll' %}selected{% endif %}>Ragdoll</option>
+                                <option value="Russian_Blue" {% if breed2=='Russian_Blue' %}selected{% endif %}>Russian Blue</option>
+                                <option value="Siamese" {% if breed2=='Siamese' %}selected{% endif %}>Siamese</option>
+                                <option value="Sphynx" {% if breed2=='Sphynx' %}selected{% endif %}>Sphynx</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Age</label>
+                            <select name="age" class="form-select">
+                                <option value="All" {% if age=='All' %}selected{% endif %}>All Ages</option>
+                                <option value="Kitten" {% if age=='Kitten' %}selected{% endif %}>Kitten</option>
+                                <option value="Young" {% if age=='Young' %}selected{% endif %}>Young</option>
+                                <option value="Adult" {% if age=='Adult' %}selected{% endif %}>Adult</option>
+                                <option value="Senior" {% if age=='Senior' %}selected{% endif %}>Senior</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Location</label>
+                            <input type="text" name="loc" class="form-control" value="{{ loc or '' }}" placeholder="e.g., Kuala Lumpur">
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-search me-1"></i>Search Cats</button>
+                        </div>
+                        <input type="hidden" name="sort" value="{{ sort }}">
+                        <input type="hidden" name="dir" value="{{ dir }}">
+                        <input type="hidden" name="page" value="1">
+                        <input type="hidden" name="page_size" value="{{ page_size or 24 }}">
+                    </form>
+                </div>
+            </div>
+
+            <!-- Sort Controls -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <form method="GET" class="row g-3 align-items-center">
+                        <div class="col-auto"><label class="form-label mb-0">Sort by</label></div>
+                        <div class="col-auto">
+                            <select name="sort" class="form-select">
+                                <option value="upload_time" {% if sort=='upload_time' %}selected{% endif %}>Reported Time</option>
+                                <option value="date_lost" {% if sort=='date_lost' %}selected{% endif %}>Date Lost</option>
+                                <option value="name" {% if sort=='name' %}selected{% endif %}>Name</option>
+                                <option value="location" {% if sort=='location' %}selected{% endif %}>Location</option>
+                                <option value="id" {% if sort=='id' %}selected{% endif %}>ID</option>
+                            </select>
+                        </div>
+                        <div class="col-auto">
+                            <select name="dir" class="form-select">
+                                <option value="desc" {% if dir=='desc' %}selected{% endif %}>Descending</option>
+                                <option value="asc" {% if dir=='asc' %}selected{% endif %}>Ascending</option>
+                            </select>
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-primary">Apply</button>
+                        </div>
+                        <input type="hidden" name="page" value="{{ page or 1 }}">
+                        <input type="hidden" name="page_size" value="{{ page_size or 24 }}">
+                    </form>
+                </div>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="text-muted">
+                    {% set start_idx = ((page-1)*page_size)+1 %}
+                    {% set end_idx = ((page-1)*page_size) + (lost_cats|length) %}
+                    Showing {{ start_idx }}–{{ end_idx }} of {{ total_count }}
+                </div>
+                <nav aria-label="Lost cats pages">
+                    <ul class="pagination mb-0">
+                        <li class="page-item {% if page<=1 %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('view_lost_cats') }}?sort={{ sort }}&dir={{ dir }}&page={{ page-1 }}&page_size={{ page_size }}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item active"><span class="page-link">{{ page }}</span></li>
+                        <li class="page-item {% if page>=total_pages %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('view_lost_cats') }}?sort={{ sort }}&dir={{ dir }}&page={{ page+1 }}&page_size={{ page_size }}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+
+            {% if lost_cats and lost_cats|length > 0 %}
+            <div class="row g-4">
+                {% for cat in lost_cats %}
+                <div class="col-lg-4 col-md-6">
+                    <div class="card border-0 shadow-sm h-100 hover-lift">
+                        <div class="position-relative" style="height: 300px; overflow: hidden;">
+                            <img src="{{ url_for('serve_cat_image', cat_id=cat.id) }}" class="card-img-top" style="height: 100%; object-fit: cover;" alt="Lost cat" loading="lazy" width="600" height="300">
+                            <div class="position-absolute top-0 end-0 m-3"><span class="badge bg-danger">Lost</span></div>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold mb-3">{{ cat.name }}</h5>
+                            <small class="text-muted d-block"><strong>Cat:</strong> {{ (cat.breed or 'Unknown')|replace('_',' ') }}</small>
+                            <small class="text-muted d-block"><strong>Profile:</strong> {{ cat.profile_summary or 'Unknown' }}</small>
+                            <small class="text-muted d-block"><strong>Location:</strong> {{ cat.location }}</small>
+                            <small class="text-muted d-block"><strong>Date Lost:</strong> {{ cat.date_lost }}</small>
+                            {% if cat.color %}<small class="text-muted d-block"><strong>Color:</strong> {{ cat.color }}</small>{% endif %}
+                            {% if cat.description %}
+                            <div class="mt-2">
+                                <small class="text-muted"><strong>Description:</strong></small>
+                                <p class="small text-muted mb-0">{{ cat.description[:100] }}{% if cat.description|length>100 %}...{% endif %}</p>
+                            </div>
+                            {% endif %}
+                            <div class="d-grid gap-2 mt-3">
+                                {% if cat.contact_info %}
+                                <button class="btn btn-primary btn-sm" onclick="showContact('{{ cat.contact_info }}', '{{ cat.name }}')"><i class="bi bi-telephone me-1"></i>Contact Owner</button>
+                                {% else %}
+                                <button class="btn btn-outline-secondary btn-sm" disabled><i class="bi bi-telephone-x me-1"></i>No Contact Info</button>
+                                {% endif %}
+
+                                <button class="btn btn-success btn-sm" onclick="showReunionModal('{{ cat.id }}', '{{ cat.name }}')">
+                                    <i class="bi bi-heart-fill me-1"></i>Mark as Reunited
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-light border-0 text-center">
+                            <small class="text-muted"><i class="bi bi-tag me-1"></i>ID: {{ cat.id }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-inbox" style="font-size: 5rem; color: #ccc;"></i>
+                <h4 class="text-muted mt-3">No Lost Cats Reported Yet</h4>
+                <p class="text-muted">Post your lost cat to alert the community.</p>
+                <a href="{{ url_for('lost_cat') }}" class="btn btn-danger"><i class="bi bi-plus-circle me-2"></i>Report Lost Cat</a>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function showContact(contactInfo, catName) {
+            alert(`${catName}\n\nContact: ${contactInfo}`);
+        }
+
+        function showReunionModal(catId, catName) {
+            document.getElementById('reunionCatName').textContent = catName;
+            document.getElementById('reunionForm').action = "{{ url_for('mark_reunited', cat_id='PLACEHOLDER') }}".replace('PLACEHOLDER', catId);
+            const modal = new bootstrap.Modal(document.getElementById('reunionModal'));
+            modal.show();
+        }
+    </script>
+
+    <!-- Reunion Modal -->
+    <div class="modal fade" id="reunionModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="POST" id="reunionForm">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title">
+                            <i class="bi bi-heart-fill me-2"></i>Mark as Reunited
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="text-center mb-4">
+                            <i class="bi bi-heart-fill text-success" style="font-size: 3rem;"></i>
+                            <h5 class="mt-3" id="reunionCatName"></h5>
+                            <p class="text-muted">Congratulations on the reunion!</p>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="ownerName" class="form-label"><i class="bi bi-person me-1"></i>Owner Name (Optional)</label>
+                            <input type="text" class="form-control" id="ownerName" name="owner_name" placeholder="Enter owner's name">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="reunionStory" class="form-label"><i class="bi bi-chat-heart me-1"></i>Reunion Story (Optional)</label>
+                            <textarea class="form-control" id="reunionStory" name="reunion_story" rows="4" placeholder="Share how the reunion happened..."></textarea>
+                            <div class="form-text">Share your success story to inspire others!</div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <small>This will move the cat to the "Reunited" section and mark it as successfully reunited.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>Confirm Reunion</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

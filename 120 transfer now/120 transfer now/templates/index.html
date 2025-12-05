@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--
+    Pet ID Malaysia - Homepage Template
+    AI Pet Recognition for Lost & Found Cats
+
+    Features: Modern UI, drag-and-drop upload, responsive design
+    Framework: Bootstrap 5 with custom CSS styling
+    -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSP: Allow Leaflet and inline init; remove unsafe-eval -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: 'unsafe-inline'; img-src 'self' https: data: blob:;">
+    <title>Pet ID Malaysia - AI Pet Recognition for Lost & Found</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- MarkerCluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        .cat-marker-icon {
+            background: none;
+            border: none;
+        }
+        .cat-marker-container {
+            position: relative;
+            width: 50px;
+            height: 50px;
+            background: #EAA35D;
+            border-radius: 50%;
+            padding: 3px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+        .cat-marker-container:hover {
+            transform: scale(1.2);
+            z-index: 1000;
+        }
+        .cat-marker-img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid white;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+                <i class="bi bi-shield-check text-primary me-2"></i>
+                <span class="fw-bold text-primary">Pet ID Malaysia</span>
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('index') }}">
+                            <i class="bi bi-house me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('found_cat') }}">
+                            <i class="bi bi-camera me-1"></i>Found a Cat?
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('lost_cat') }}">
+                            <i class="bi bi-exclamation-circle me-1"></i>Report Lost Cat
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('view_found_cats') }}">
+                            <i class="bi bi-grid-3x3-gap me-1"></i>View Found Cats
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('view_lost_cats') }}">
+                            <i class="bi bi-search-heart me-1"></i>View Lost Cats
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('reunited_cats') }}">
+                            <i class="bi bi-heart-fill me-1"></i>Reunited
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('about') }}">
+                            <i class="bi bi-info-circle me-1"></i>About
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('contact') }}">
+                            <i class="bi bi-envelope me-1"></i>Contact
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="row align-items-center min-vh-100">
+                <div class="col-lg-6">
+                    <div class="hero-content">
+                        <div class="badge bg-primary bg-gradient mb-3">
+                            <i class="bi bi-cpu me-2"></i>AI-Powered Recognition
+                        </div>
+                        <h1 class="display-3 fw-bold mb-4">
+                            AI Pet Recognition for <span class="text-primary">Lost & Found</span>
+                        </h1>
+                        <p class="lead mb-4 text-muted">
+                            Upload a cat photo to find possible matches in our database.
+                            Our advanced AI technology analyzes facial features to help reunite lost pets with their families.
+                        </p>
+
+                        <!-- Features -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-sm-6">
+                                <div class="d-flex align-items-center">
+                                    <div class="feature-icon bg-primary bg-opacity-10 text-primary rounded-circle p-3 me-3">
+                                        <i class="bi bi-lightning-charge"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Instant Results</h6>
+                                        <small class="text-muted">Get matches in seconds</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="d-flex align-items-center">
+                                    <div class="feature-icon bg-success bg-opacity-10 text-success rounded-circle p-3 me-3">
+                                        <i class="bi bi-shield-check"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">High Accuracy</h6>
+                                        <small class="text-muted">Advanced AI technology</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stats -->
+                        <div class="d-flex flex-wrap gap-4 mb-5">
+                            <div>
+                                <h3 class="fw-bold text-primary">1000+</h3>
+                                <small class="text-muted">Cats in Database</small>
+                            </div>
+                            <div>
+                                <h3 class="fw-bold text-success">95%</h3>
+                                <small class="text-muted">Accuracy Rate</small>
+                            </div>
+                            <div>
+                                <h3 class="fw-bold text-info">24/7</h3>
+                                <small class="text-muted">Always Available</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <!-- Upload Section -->
+                    <div class="upload-container">
+                        <div class="card border-0 shadow-lg">
+                            <div class="card-body p-4">
+                                <h5 class="card-title text-center mb-4">
+                                    <i class="bi bi-cloud-upload me-2"></i>Upload Cat Photo
+                                </h5>
+
+                                <!-- Flash Messages -->
+                                {% with messages = get_flashed_messages(with_categories=true) %}
+                                    {% if messages %}
+                                        {% for category, message in messages %}
+                                            <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                                                <i class="bi bi-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' }} me-2"></i>
+                                                {{ message }}
+                                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                            </div>
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endwith %}
+
+                                <!-- Upload Form -->
+                                <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" id="uploadForm">
+                                    <!-- Drag and Drop Area -->
+                                    <div class="drag-drop-area" id="dragDropArea">
+                                        <div class="drag-drop-content">
+                                            <i class="bi bi-cloud-upload upload-icon"></i>
+                                            <h6 class="mt-3 mb-2">Drag & Drop your cat photo here</h6>
+                                            <p class="text-muted mb-3">or click to browse</p>
+                                            <button type="button" class="btn btn-outline-primary" id="chooseFileBtn">
+                                                <i class="bi bi-folder-open me-2"></i>Choose File
+                                            </button>
+                                        </div>
+
+                                        <!-- Hidden File Input -->
+                                        <input type="file" name="file" id="fileInput" accept=".jpg,.jpeg,.png" style="display: none;" multiple required>
+
+                                        <!-- File Preview -->
+                                        <div id="filePreview" style="display: none;">
+                                            <img id="previewImage" class="img-fluid rounded mb-3 mx-auto d-block" alt="Preview">
+                                            <h6 id="fileName" class="text-muted mb-2"></h6>
+                                            <p id="fileSize" class="text-muted small mb-3"></p>
+                                            <div id="previewCount" class="small text-muted mb-3"></div>
+                                            <div id="thumbGrid" class="mb-3" style="display:none; gap:12px; grid-template-columns: repeat(2, 160px); justify-content:center;"></div>
+                                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearFile()">
+                                                <i class="bi bi-trash me-1"></i>Remove
+                                            </button>
+                                            <button type="submit" class="btn btn-primary btn-sm ms-2" id="uploadBtn">
+                                                <i class="bi bi-search me-1"></i>Find Matches
+                                            </button>
+                                            <div class="spinner-border text-primary ms-2" role="status" id="uploadSpinner" style="display:none;">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Supported Formats -->
+                                    <div class="text-center mt-3">
+                                        <small class="text-info d-block mb-2">
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            Supported formats: JPG, JPEG, PNG (Max 16MB)
+                                        </small>
+                                        <small class="text-muted" style="font-size: 0.8rem;">
+                                            <i class="bi bi-lightbulb me-1"></i>
+                                            <strong>Tip:</strong> Use a clear, well-lit photo of the cat's face for best results.
+                                        </small>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- How it Works -->
+                        <div class="mt-4 text-center">
+                            <h6 class="mb-3">How it works</h6>
+                            <div class="row g-2">
+                                <div class="col-4">
+                                    <div class="step-indicator">
+                                        <div class="step-number">1</div>
+                                        <small class="text-muted">Upload Photo</small>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="step-indicator">
+                                        <div class="step-number">2</div>
+                                        <small class="text-muted">AI Analysis</small>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="step-indicator">
+                                        <div class="step-number">3</div>
+                                        <small class="text-muted">Get Matches</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Background Animation -->
+        <div class="hero-bg-animation">
+            <div class="floating-shape shape-1"></div>
+            <div class="floating-shape shape-2"></div>
+            <div class="floating-shape shape-3"></div>
+        </div>
+    </section>
+
+    <!-- Map Section -->
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-5 fw-bold mb-3">Recent Found Cats</h2>
+                <p class="lead text-muted">Check our map of recently found cats in your area</p>
+            </div>
+            <div class="card border-0 shadow-lg">
+                <div class="card-body p-0">
+                    <div id="map" style="height: 400px; width: 100%; border-radius: 0.375rem; z-index: 1;"></div>
+                </div>
+            </div>
+            <div class="text-center mt-4">
+                <a href="{{ url_for('view_found_cats') }}" class="btn btn-outline-primary">
+                    <i class="bi bi-map me-2"></i>View Full Map
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Two Options Section -->
+    <section class="py-5 bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="container">
+            <div class="text-center text-white mb-5">
+                <h2 class="display-5 fw-bold mb-3">How Can We Help You?</h2>
+                <p class="lead">Choose the option that fits your situation</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-lg h-100">
+                        <div class="card-body p-5 text-center">
+                            <div class="feature-icon-large bg-danger bg-gradient text-white rounded-circle mx-auto mb-4">
+                                <i class="bi bi-search"></i>
+                            </div>
+                            <h3 class="fw-bold mb-3">Lost Your Cat?</h3>
+                            <p class="text-muted mb-4">
+                                Upload your pet's photo and let our AI search through our database 
+                                to find potential matches with found cats.
+                            </p>
+                            <ul class="list-unstyled text-start mb-4">
+                                <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>AI-powered matching</li>
+                                <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Instant results</li>
+                                <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>High accuracy</li>
+                            </ul>
+                            <a href="#uploadForm" class="btn btn-danger btn-lg w-100" onclick="event.preventDefault(); (function(){const input=document.getElementById('fileInput'); input.value=''; input.click();})()">
+                                <i class="bi bi-search me-2"></i>Search for My Pet
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-lg h-100">
+                        <div class="card-body p-5 text-center">
+                            <div class="feature-icon-large bg-success bg-gradient text-white rounded-circle mx-auto mb-4">
+                                <i class="bi bi-camera"></i>
+                            </div>
+                            <h3 class="fw-bold mb-3">Found a Cat?</h3>
+                            <p class="text-muted mb-4">
+                                Help reunite lost pets by uploading photos of cats you've found. 
+                                Your contribution helps owners find their missing companions.
+                            </p>
+                            <ul class="list-unstyled text-start mb-4">
+                                <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Add to database</li>
+                                <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Help owners find pets</li>
+                                <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Community support</li>
+                            </ul>
+                            <a href="{{ url_for('found_cat') }}" class="btn btn-success btn-lg w-100">
+                                <i class="bi bi-camera me-2"></i>Report Found Cat
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="feature-card text-center">
+                        <div class="feature-icon-large bg-primary bg-gradient text-white rounded-circle mx-auto mb-3">
+                            <i class="bi bi-speedometer2"></i>
+                        </div>
+                        <h5>Fast Processing</h5>
+                        <p class="text-muted">Get results in seconds with our optimized AI algorithms</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card text-center">
+                        <div class="feature-icon-large bg-success bg-gradient text-white rounded-circle mx-auto mb-3">
+                            <i class="bi bi-shield-check"></i>
+                        </div>
+                        <h5>Secure & Private</h5>
+                        <p class="text-muted">Your images are processed securely and never shared</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card text-center">
+                        <div class="feature-icon-large bg-info bg-gradient text-white rounded-circle mx-auto mb-3">
+                            <i class="bi bi-heart"></i>
+                        </div>
+                        <h5>Help Reunite Pets</h5>
+                        <p class="text-muted">Join our mission to help lost pets find their way home</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="mb-3">Pet ID Malaysia</h5>
+                    <p class="text-muted">AI-powered pet recognition system helping reunite lost pets with their families.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <h6 class="mb-3">Quick Links</h6>
+                    <div class="d-flex flex-wrap gap-3 justify-content-md-end">
+                        <a href="{{ url_for('index') }}" class="text-light text-decoration-none">Home</a>
+                        <a href="{{ url_for('about') }}" class="text-light text-decoration-none">About</a>
+                        <a href="{{ url_for('contact') }}" class="text-light text-decoration-none">Contact</a>
+                    </div>
+                </div>
+            </div>
+            <hr class="my-3">
+            <div class="text-center">
+                <small class="text-muted">&copy; 2024 Pet ID Malaysia. All rights reserved.</small>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-content">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <h5>Analyzing Image...</h5>
+            <p class="text-muted">Our AI is working to find matches</p>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- MarkerCluster JS -->
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+    <!-- Custom JavaScript -->
+    <script>
+        // Initialize Map
+        document.addEventListener('DOMContentLoaded', function() {
+            // Default center (Kuala Lumpur)
+            const map = L.map('map').setView([3.1390, 101.6869], 11);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            // Fetch Found Cats Data with clustering
+            fetch('/api/found-cats-map')
+                .then(response => response.json())
+                .then(cats => {
+                    if (cats.length === 0) return;
+
+                    const bounds = L.latLngBounds();
+                    const markers = L.markerClusterGroup();
+                    const chunkSize = 200;
+                    let i = 0;
+
+                    function addChunk() {
+                        const slice = cats.slice(i, i + chunkSize);
+                        slice.forEach(cat => {
+                            if (cat.lat && cat.lng) {
+                                const customIcon = L.divIcon({
+                                    className: 'cat-marker-icon',
+                                    html: `
+                                        <div class="cat-marker-container">
+                                            <img src="${cat.image_url}" class="cat-marker-img" alt="${cat.name}">
+                                        </div>
+                                    `,
+                                    iconSize: [50, 50],
+                                    iconAnchor: [25, 25],
+                                    popupAnchor: [0, -25]
+                                });
+
+                                const popupContent = `
+                                    <div class="text-center">
+                                        <img src="${cat.image_url}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;">
+                                        <h6 class="fw-bold mb-1">${cat.name}</h6>
+                                        <p class="small text-muted mb-1"><i class="bi bi-geo-alt me-1"></i>${cat.location}</p>
+                                        <p class="small text-muted mb-0"><i class="bi bi-calendar me-1"></i>${cat.date_found}</p>
+                                        <div class="mt-2">
+                                            <a href="/view-found-cats" class="btn btn-sm btn-primary py-0" style="font-size: 0.8rem;">View Details</a>
+                                        </div>
+                                    </div>
+                                `;
+
+                                const marker = L.marker([cat.lat, cat.lng], {icon: customIcon}).bindPopup(popupContent);
+                                markers.addLayer(marker);
+                                bounds.extend([cat.lat, cat.lng]);
+                            }
+                        });
+                        i += chunkSize;
+                        if (i < cats.length) {
+                            setTimeout(addChunk, 0);
+                        } else {
+                            map.addLayer(markers);
+                            if (cats.length > 0) {
+                                map.fitBounds(bounds, {padding: [50, 50]});
+                            }
+                        }
+                    }
+                    addChunk();
+                })
+                .catch(error => console.error('Error loading map data:', error));
+        });
+
+        // Show spinner on submit
+        document.getElementById('uploadForm').addEventListener('submit', function(){
+            document.getElementById('uploadBtn').disabled = true;
+            document.getElementById('uploadSpinner').style.display = 'inline-block';
+        });
+        // Drag & Drop functionality
+        const dragDropArea = document.getElementById('dragDropArea');
+        const fileInput = document.getElementById('fileInput');
+        const chooseFileBtn = document.getElementById('chooseFileBtn');
+        const filePreview = document.getElementById('filePreview');
+        const previewImage = document.getElementById('previewImage');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const previewCount = document.getElementById('previewCount');
+        const uploadForm = document.getElementById('uploadForm');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const uploadBtn = document.getElementById('uploadBtn');
+        let selectedFiles = [];
+        const thumbGrid = document.getElementById('thumbGrid');
+
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dragDropArea.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        // Highlight drop area when item is dragged over it
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dragDropArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dragDropArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function highlight() {
+            dragDropArea.classList.add('drag-over');
+        }
+
+        function unhighlight() {
+            dragDropArea.classList.remove('drag-over');
+        }
+
+        // Handle dropped files
+        dragDropArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        // Handle file selection
+        fileInput.addEventListener('click', function() {
+            fileInput.value = '';
+        });
+        fileInput.addEventListener('change', function() {
+            handleFiles(this.files);
+        });
+
+        function handleFiles(files) {
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+            Array.from(files).forEach(f => {
+                if (selectedFiles.length >= 5) return;
+                if (!allowedTypes.includes(f.type)) return;
+                if (f.size > 16 * 1024 * 1024) return;
+                selectedFiles.push(f);
+            });
+            if (selectedFiles.length === 0) return;
+            const first = selectedFiles[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImage.src = e.target.result;
+                fileName.textContent = selectedFiles.length === 1 ? first.name : `${selectedFiles.length} photos selected`;
+                fileSize.textContent = selectedFiles.length === 1 ? formatFileSize(first.size) : `First: ${formatFileSize(first.size)}`;
+                previewCount.textContent = selectedFiles.length > 1 ? 'Up to 5 photos will be used to improve matching.' : '';
+                document.querySelector('.drag-drop-content').style.display = 'none';
+                filePreview.style.display = 'block';
+                uploadBtn.disabled = false;
+                if (selectedFiles.length > 1) {
+                    previewImage.style.display = 'none';
+                    previewImage.classList.add('d-none');
+                    thumbGrid.style.display = 'grid';
+                    thumbGrid.innerHTML = '';
+                    selectedFiles.slice(0,5).forEach((f) => {
+                        const r2 = new FileReader();
+                        r2.onload = function(ev){
+                            const img = document.createElement('img');
+                            img.src = ev.target.result;
+                            img.className = 'rounded';
+                            img.style.height = '160px';
+                            img.style.width = '160px';
+                            img.style.objectFit = 'cover';
+                            img.style.boxShadow = '0 6px 12px rgba(0,0,0,0.15)';
+                            thumbGrid.appendChild(img);
+                        };
+                        r2.readAsDataURL(f);
+                    });
+                    // Move thumbnails to the top of the preview section
+                    if (filePreview.firstChild !== thumbGrid) {
+                        filePreview.insertBefore(thumbGrid, filePreview.firstChild);
+                    }
+                } else {
+                    previewImage.classList.remove('d-none');
+                    previewImage.style.display = 'block';
+                    thumbGrid.innerHTML = '';
+                    thumbGrid.style.display = 'none';
+                }
+                const dt = new DataTransfer();
+                selectedFiles.forEach(f => dt.items.add(f));
+                fileInput.files = dt.files;
+            };
+            reader.readAsDataURL(first);
+        }
+
+        function clearFile() {
+            selectedFiles = [];
+            fileInput.value = '';
+            previewImage.src = '';
+            fileName.textContent = '';
+            fileSize.textContent = '';
+            previewCount.textContent = '';
+            thumbGrid.innerHTML = '';
+            thumbGrid.style.display = 'none';
+            document.querySelector('.drag-drop-content').style.display = 'block';
+            filePreview.style.display = 'none';
+            uploadBtn.disabled = true;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Handle form submission
+        uploadForm.addEventListener('submit', function() {
+            loadingOverlay.style.display = 'flex';
+        });
+
+        // Click on drag area to trigger file input
+        dragDropArea.addEventListener('click', function(e) {
+            if (e.target === dragDropArea || e.target.closest('.drag-drop-content')) {
+                fileInput.value = '';
+                fileInput.click();
+            }
+        });
+    </script>
+</body>
+</html>

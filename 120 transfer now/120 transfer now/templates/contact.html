@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--
+    Pet ID Malaysia - Contact Page Template
+    Contact form and support information
+
+    Features: Contact form, location map, support details
+    Framework: Bootstrap 5 with custom CSS styling
+    -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us - Pet ID Malaysia</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+                <i class="bi bi-shield-check text-primary me-2"></i>
+                <span class="fw-bold text-primary">Pet ID Malaysia</span>
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="bi bi-house me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('found_cat') }}">
+                            <i class="bi bi-camera me-1"></i>Found a Cat?
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('lost_cat') }}">
+                            <i class="bi bi-exclamation-circle me-1"></i>Report Lost Cat
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('view_found_cats') }}">
+                            <i class="bi bi-grid-3x3-gap me-1"></i>View Found Cats
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('view_lost_cats') }}">
+                            <i class="bi bi-search-heart me-1"></i>View Lost Cats
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('reunited_cats') }}">
+                            <i class="bi bi-heart-fill me-1"></i>Reunited
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('about') }}">
+                            <i class="bi bi-info-circle me-1"></i>About
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('contact') }}">
+                            <i class="bi bi-envelope me-1"></i>Contact
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <section class="page-header py-5 bg-primary bg-gradient text-white">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h1 class="display-4 fw-bold mb-3">Contact Us</h1>
+                    <p class="lead mb-0">
+                        Get in touch with our team for support, partnerships, or media inquiries
+                    </p>
+                </div>
+                <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                    <div class="d-flex justify-content-lg-end gap-3">
+                        <div class="text-center">
+                            <i class="bi bi-clock display-4"></i>
+                            <p class="small mb-0 mt-2">24/7 Support</p>
+                        </div>
+                        <div class="text-center">
+                            <i class="bi bi-headset display-4"></i>
+                            <p class="small mb-0 mt-2">Quick Response</p>
+                        </div>
+                        <div class="text-center">
+                            <i class="bi bi-shield-check display-4"></i>
+                            <p class="small mb-0 mt-2">Trusted Service</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Content -->
+    <section class="py-5">
+        <div class="container">
+            <div class="row g-4">
+                <!-- Contact Form -->
+                <div class="col-lg-8">
+                    <div class="card border-0 shadow-lg">
+                        <div class="card-header bg-white border-bottom">
+                            <h4 class="mb-0">
+                                <i class="bi bi-envelope-paper text-primary me-2"></i>
+                                Send us a Message
+                            </h4>
+                        </div>
+                        <div class="card-body p-4">
+                            <form id="contactForm">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="firstName" class="form-label">First Name *</label>
+                                        <input type="text" class="form-control" id="firstName" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="lastName" class="form-label">Last Name *</label>
+                                        <input type="text" class="form-control" id="lastName" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="email" class="form-label">Email Address *</label>
+                                        <input type="email" class="form-control" id="email" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="phone" class="form-label">Phone Number</label>
+                                        <input type="tel" class="form-control" id="phone" placeholder="+60 12-345 6789">
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="subject" class="form-label">Subject *</label>
+                                        <select class="form-select" id="subject" required>
+                                            <option value="">Select a subject</option>
+                                            <option value="general">General Inquiry</option>
+                                            <option value="support">Technical Support</option>
+                                            <option value="lost-pet">Report Lost Pet</option>
+                                            <option value="found-pet">Report Found Pet</option>
+                                            <option value="partnership">Partnership Opportunity</option>
+                                            <option value="media">Media Inquiry</option>
+                                            <option value="feedback">Feedback & Suggestions</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="message" class="form-label">Message *</label>
+                                        <textarea class="form-control" id="message" rows="5" required
+                                                  placeholder="Please provide as much detail as possible..."></textarea>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="urgent" value="true">
+                                            <label class="form-check-label" for="urgent">
+                                                Mark as urgent (emergency pet situation)
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="d-flex gap-2">
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="bi bi-send me-2"></i>Send Message
+                                            </button>
+                                            <button type="reset" class="btn btn-outline-secondary">
+                                                <i class="bi bi-arrow-clockwise me-2"></i>Reset Form
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="col-lg-4">
+                    <!-- Quick Contact -->
+                    <div class="card border-0 shadow-lg mb-4">
+                        <div class="card-header bg-white border-bottom">
+                            <h5 class="mb-0">
+                                <i class="bi bi-telephone text-primary me-2"></i>
+                                Quick Contact
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="bi bi-telephone-fill text-primary me-3"></i>
+                                <div>
+                                    <h6 class="mb-0">Hotline</h6>
+                                    <a href="tel:+60123456789" class="text-decoration-none">+60 12-345 6789</a>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="bi bi-envelope-fill text-success me-3"></i>
+                                <div>
+                                    <h6 class="mb-0">Email</h6>
+                                    <a href="mailto:contact@petid.com.my" class="text-decoration-none">contact@petid.com.my</a>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-clock-fill text-info me-3"></i>
+                                <div>
+                                    <h6 class="mb-0">Response Time</h6>
+                                    <small class="text-muted">Usually within 2 hours</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Emergency Contact -->
+                    <div class="card border-0 shadow bg-danger bg-gradient text-white mb-4">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="bi bi-exclamation-triangle-fill display-6 me-3"></i>
+                                <div>
+                                    <h5 class="mb-0">Emergency?</h5>
+                                    <p class="mb-0 small">For urgent pet emergencies</p>
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <a href="tel:+60191234567" class="btn btn-light">
+                                    <i class="bi bi-telephone-fill me-2"></i>
+                                    Emergency Hotline
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Office Hours -->
+                    <div class="card border-0 shadow">
+                        <div class="card-header bg-white border-bottom">
+                            <h5 class="mb-0">
+                                <i class="bi bi-clock text-primary me-2"></i>
+                                Office Hours
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Monday - Friday</span>
+                                <span class="fw-bold">9:00 AM - 6:00 PM</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Saturday</span>
+                                <span class="fw-bold">10:00 AM - 4:00 PM</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3">
+                                <span>Sunday</span>
+                                <span class="fw-bold">Emergency Only</span>
+                            </div>
+                            <div class="alert alert-info small mb-0">
+                                <i class="bi bi-info-circle me-1"></i>
+                                24/7 AI system available for pet recognition
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+        </div>
+    </section>
+
+    <!-- Success Modal -->
+    <div class="modal fade" id="successModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title">
+                        <i class="bi bi-check-circle text-success me-2"></i>
+                        Message Sent!
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Thank you for contacting us! We'll get back to you within 2 hours during business hours.</p>
+                    <div id="emergencyNotice" class="alert alert-warning" style="display: none;">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        For urgent emergencies, please call our hotline: <strong>+60 19-123 4567</strong>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="mb-3">Pet ID Malaysia</h5>
+                    <p class="text-muted">AI-powered pet recognition system helping reunite lost pets with their families.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <h6 class="mb-3">Quick Links</h6>
+                    <div class="d-flex flex-wrap gap-3 justify-content-md-end">
+                        <a href="{{ url_for('index') }}" class="text-light text-decoration-none">Home</a>
+                        <a href="{{ url_for('about') }}" class="text-light text-decoration-none">About</a>
+                        <a href="{{ url_for('contact') }}" class="text-light text-decoration-none">Contact</a>
+                    </div>
+                </div>
+            </div>
+            <hr class="my-3">
+            <div class="text-center">
+                <small class="text-muted">&copy; 2024 Pet ID Malaysia. All rights reserved.</small>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom JavaScript -->
+    <script>
+        // Contact form submission
+        document.getElementById('contactForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Get form data
+            const urgent = document.getElementById('urgent').checked;
+            const formData = new FormData(this);
+
+            // Show loading
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Sending...';
+            submitBtn.disabled = true;
+
+            // Simulate API call
+            setTimeout(() => {
+                // Reset button
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+
+                // Show success modal
+                if (urgent) {
+                    document.getElementById('emergencyNotice').style.display = 'block';
+                } else {
+                    document.getElementById('emergencyNotice').style.display = 'none';
+                }
+
+                new bootstrap.Modal(document.getElementById('successModal')).show();
+
+                // Reset form
+                this.reset();
+            }, 2000);
+        });
+
+        // Live chat function
+        function startLiveChat() {
+            // In a real application, this would open a chat widget
+            alert('Live chat is coming soon! In the meantime, please call our hotline or send us a message.');
+        }
+
+        // Show location function
+        function showLocation() {
+            // In a real application, this would show a map or open Google Maps
+            alert('Visit us at: Pet ID Malaysia Office, Kuala Lumpur City Centre, 50088 Kuala Lumpur');
+        }
+
+        // Form validation
+        document.getElementById('contactForm').addEventListener('input', function(e) {
+            const field = e.target;
+            if (field.checkValidity()) {
+                field.classList.remove('is-invalid');
+                field.classList.add('is-valid');
+            } else if (field.value) {
+                field.classList.remove('is-valid');
+                field.classList.add('is-invalid');
+            }
+        });
+
+        // Phone number formatting
+        document.getElementById('phone').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 0) {
+                if (value.length <= 3) {
+                    value = value;
+                } else if (value.length <= 6) {
+                    value = value.slice(0, 3) + '-' + value.slice(3);
+                } else {
+                    value = value.slice(0, 3) + '-' + value.slice(3, 7) + ' ' + value.slice(7, 11);
+                }
+            }
+            e.target.value = value;
+        });
+    </script>
+</body>
+</html>
