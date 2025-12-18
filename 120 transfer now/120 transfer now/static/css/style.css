@@ -116,6 +116,15 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 4px 10px rgba(234, 163, 93, 0.3);
 }
 
+/* Ensure tab buttons remain readable when active */
+.nav-tabs .nav-link {
+  color: var(--dark-color) !important;
+}
+.nav-tabs .nav-link.active {
+  background-color: var(--primary-color) !important;
+  color: #fff !important;
+}
+
 /* ===============================
    Hero Section & Homepage
    =============================== */

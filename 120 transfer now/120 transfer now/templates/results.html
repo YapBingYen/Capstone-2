@@ -67,10 +67,33 @@
                             <i class="bi bi-envelope me-1"></i>Contact
                         </a>
                     </li>
+                    <li class="nav-item">
+                        {% if session.get('user') %}
+                            <a class="nav-link" href="{{ url_for('profile') }}">
+                                <i class="bi bi-person-circle me-1"></i>{{ session['user'] }}
+                            </a>
+                        {% else %}
+                            <a class="nav-link" href="{{ url_for('login') }}">
+                                <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                            </a>
+                        {% endif %}
+                    </li>
+                    <li class="nav-item">
+                        {% if session.get('user') %}
+                            <a class="nav-link" href="{{ url_for('logout') }}">
+                                <i class="bi bi-box-arrow-right me-1"></i>Logout
+                            </a>
+                        {% else %}
+                            <a class="nav-link" href="{{ url_for('register') }}">
+                                <i class="bi bi-person-plus me-1"></i>Register
+                            </a>
+                        {% endif %}
+                    </li>
                 </ul>
             </div>
         </div>
     </nav>
+
 
     <!-- Results Header -->
     <section class="results-header py-4 bg-light">
@@ -283,8 +306,8 @@
                                                 <button class="btn btn-outline-primary" onclick="viewDetails('{{ match.metadata.id }}')">
                                                     <i class="bi bi-eye me-1"></i>View Details
                                                 </button>
-                                                <button class="btn btn-outline-success" onclick="reportMatch('{{ match.metadata.id }}')">
-                                                    <i class="bi bi-flag me-1"></i>Report
+                                                <button class="btn btn-outline-success" onclick="contactFinder('{{ match.metadata.id }}')">
+                                                    <i class="bi bi-envelope me-1"></i>Contact Finder
                                                 </button>
                                             </div>
                                         </div>
@@ -388,10 +411,20 @@
             showNotification('View Details', `Showing details for ${catId}`, 'info');
         }
 
-        // Report match function
-        function reportMatch(catId) {
-            // In a real application, this would handle reporting
-            showNotification('Report Submitted', `Thank you for reporting information about ${catId}`, 'success');
+        function contactFinder(catId) {
+            const url = `/contact-finder/${encodeURIComponent(catId)}`;
+            fetch(url).then(r => r.json()).then(data => {
+                if (data.status === 'ok') {
+                    const contact = data.email || data.contact_info || 'No contact info available';
+                    const name = data.founder_username ? `Finder: ${data.founder_username}` : '';
+                    const msg = [name, `Contact: ${contact}`].filter(Boolean).join('\n');
+                    showNotification('Contact Finder', msg, 'info');
+                } else {
+                    showNotification('Error', data.message || 'Unable to retrieve contact information.', 'error');
+                }
+            }).catch(() => {
+                showNotification('Error', 'Unable to retrieve contact information.', 'error');
+            });
         }
 
         // Share results function

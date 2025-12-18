@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account - Pet ID Malaysia</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+                <i class="bi bi-shield-check text-primary me-2"></i>
+                <span class="fw-bold text-primary">Pet ID Malaysia</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="bi bi-house me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('found_cat') }}">
+                            <i class="bi bi-camera me-1"></i>Found a Cat?
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('lost_cat') }}">
+                            <i class="bi bi-exclamation-circle me-1"></i>Report Lost Cat
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('view_found_cats') }}">
+                            <i class="bi bi-grid-3x3-gap me-1"></i>View Found Cats
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('view_lost_cats') }}">
+                            <i class="bi bi-search-heart me-1"></i>View Lost Cats
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('reunited_cats') }}">
+                            <i class="bi bi-heart-fill me-1"></i>Reunited
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('about') }}">
+                            <i class="bi bi-info-circle me-1"></i>About
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('contact') }}">
+                            <i class="bi bi-envelope me-1"></i>Contact
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-5">
+                    <div class="card border-0 shadow-lg">
+                        <div class="card-body p-4">
+                            <h1 class="h4 fw-bold mb-3 text-center">
+                                <i class="bi bi-person-plus me-2 text-primary"></i>Create Account
+                            </h1>
+                            <p class="text-muted text-center mb-4">
+                                Create an optional account to save your activity and make it easier to manage future lost or found reports.
+                            </p>
+
+                            {% with messages = get_flashed_messages(with_categories=true) %}
+                                {% if messages %}
+                                    {% for category, message in messages %}
+                                        <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                                            <i class="bi bi-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' }} me-2"></i>
+                                            {{ message }}
+                                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                        </div>
+                                    {% endfor %}
+                                {% endif %}
+                            {% endwith %}
+
+                            <form method="post" action="{{ url_for('register') }}">
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">Username</label>
+                                    <input type="text" class="form-control" id="username" name="username" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="email" name="email" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">Password</label>
+                                    <input type="password" class="form-control" id="password" name="password" required minlength="6">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="confirm_password" class="form-label">Confirm Password</label>
+                                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required minlength="6">
+                                </div>
+                                <div class="d-grid mb-3">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-person-check me-2"></i>Sign Up
+                                    </button>
+                                </div>
+                                <p class="text-center small mb-0">
+                                    Already have an account?
+                                    <a href="{{ url_for('login') }}">Log in</a>
+                                </p>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

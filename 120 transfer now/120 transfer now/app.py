@@ -9,8 +9,9 @@ Dependencies: Flask, TensorFlow, OpenCV, NumPy, scikit-learn
 
 import os
 import numpy as np
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_from_directory, send_file, abort
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_from_directory, send_file, abort, session
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 import tensorflow as tf
 from tensorflow import keras
 import cv2
@@ -45,7 +46,9 @@ APP_DIR = os.path.dirname(__file__)
 CACHE_DIR = os.path.abspath(os.path.join(APP_DIR, '..', '..'))
 EMBEDDINGS_CACHE = os.path.join(CACHE_DIR, 'cat_embeddings_cache.npy')
 METADATA_CACHE = os.path.join(CACHE_DIR, 'cat_metadata_cache.json')
-FOUND_CATS_METADATA = os.path.join(CACHE_DIR, 'found_cats_metadata.json')  # Metadata for found cats
+FOUND_CATS_METADATA = os.path.join(CACHE_DIR, 'found_cats_metadata.json')
+USERS_FILE = os.path.join(CACHE_DIR, 'users.json')
+NOTIFICATIONS_FILE = os.path.join(CACHE_DIR, 'notifications.json')
 
 app = Flask(__name__)
 app.secret_key = 'pet_id_malaysia_2024_secure_key'
@@ -64,6 +67,67 @@ cat_metadata = {}
 haar_cascade = None
 
 IMG_SIZE = 224
+
+
+def load_users():
+    if os.path.exists(USERS_FILE):
+        try:
+            with open(USERS_FILE, 'r') as f:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    return data
+        except Exception:
+            return {}
+    return {}
+
+
+def save_users(users):
+    try:
+        with open(USERS_FILE, 'w') as f:
+            json.dump(users, f)
+    except Exception as e:
+        logger.error(f"Failed to save users: {e}")
+
+
+def load_notifications():
+    if os.path.exists(NOTIFICATIONS_FILE):
+        try:
+            with open(NOTIFICATIONS_FILE, 'r') as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    return data
+        except Exception:
+            return []
+    return []
+
+
+def save_notifications(notifications):
+    try:
+        with open(NOTIFICATIONS_FILE, 'w') as f:
+            json.dump(notifications, f)
+    except Exception as e:
+        logger.error(f"Failed to save notifications: {e}")
+
+@app.context_processor
+def inject_notifications_context():
+    try:
+        user = session.get('user')
+        notifications = [n for n in load_notifications() if (n.get('type') or '') == 'potential_match']
+        if user:
+            account_notifications = [n for n in notifications if n.get('recipient_username') == user]
+        else:
+            account_notifications = []
+        account_count = len(account_notifications)
+        latest = sorted(account_notifications, key=lambda x: x.get('created_at') or '', reverse=True)[:10]
+        return {
+            'account_notification_count': account_count,
+            'account_notifications': latest,
+        }
+    except Exception:
+        return {
+            'account_notification_count': 0,
+            'account_notifications': []
+        }
 
 class PetRecognitionSystem:
     """Main class for handling pet recognition operations"""
@@ -476,6 +540,162 @@ def index():
     """Homepage with upload form"""
     return render_template('index.html')
 
+
+@app.route('/notify-match', methods=['POST'])
+def notify_match():
+    try:
+        cat_id = (request.form.get('cat_id') or '').strip()
+        if not cat_id:
+            return jsonify({'status': 'error', 'message': 'cat_id is required'}), 400
+
+        metadata = recognition_system.cat_metadata.get(cat_id, {})
+        sender_name = (request.form.get('sender_name') or '').strip() or session.get('user') or 'Anonymous'
+        sender_contact = (request.form.get('sender_contact') or '').strip()
+        message = (request.form.get('message') or '').strip()
+        recipient_username = metadata.get('owner_username')
+        sender_username = session.get('user')
+
+        notifications = load_notifications()
+        notifications.append({
+            'id': datetime.now().strftime("%Y%m%d_%H%M%S_%f"),
+            'type': 'potential_match',
+            'cat_id': cat_id,
+            'cat_name': metadata.get('name'),
+            'sender_name': sender_name,
+            'sender_contact': sender_contact,
+            'message': message,
+            'sender_username': sender_username,
+            'recipient_username': recipient_username,
+            'created_at': datetime.now().isoformat()
+        })
+        save_notifications(notifications)
+
+        return jsonify({'status': 'ok', 'message': 'Your potential match report has been recorded.'})
+    except Exception as e:
+        logger.error(f"Error recording notification: {e}")
+        return jsonify({'status': 'error', 'message': 'Unable to record match notification.'}), 500
+
+@app.route('/contact-finder/<cat_id>')
+def contact_finder(cat_id):
+    try:
+        cat_id = (cat_id or '').strip()
+        metadata = recognition_system.cat_metadata.get(cat_id)
+        if not metadata:
+            return jsonify({'status': 'error', 'message': 'Cat not found'}), 404
+        founder = (metadata.get('founder_username') or '').strip()
+        users = load_users()
+        email = ''
+        if founder and founder in users:
+            email = users[founder].get('email') or ''
+        contact_info = (metadata.get('contact_info') or '').strip()
+        contact = email or contact_info
+        return jsonify({
+            'status': 'ok',
+            'founder_username': founder,
+            'cat_name': metadata.get('name'),
+            'email': email,
+            'contact_info': contact_info,
+            'contact': contact
+        })
+    except Exception as e:
+        logger.error(f"Error retrieving finder contact: {e}")
+        return jsonify({'status': 'error', 'message': 'Unable to retrieve contact information.'}), 500
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = (request.form.get('username') or '').strip()
+        email = (request.form.get('email') or '').strip()
+        password = request.form.get('password') or ''
+        confirm = request.form.get('confirm_password') or ''
+
+        if not username or not email or not password or not confirm:
+            flash('Username, email and password are required.', 'error')
+            return redirect(url_for('register'))
+
+        if '@' not in email or '.' not in email:
+            flash('Please enter a valid email address.', 'error')
+            return redirect(url_for('register'))
+
+        if password != confirm:
+            flash('Passwords do not match.', 'error')
+            return redirect(url_for('register'))
+
+        users = load_users()
+        if username in users:
+            flash('Username already exists. Please choose another.', 'error')
+            return redirect(url_for('register'))
+
+        users[username] = {
+            'username': username,
+            'email': email,
+            'password_hash': generate_password_hash(password)
+        }
+        save_users(users)
+        session['user'] = username
+        flash('Registration successful. You are now logged in.', 'success')
+        return redirect(url_for('index'))
+
+    return render_template('register.html')
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = (request.form.get('username') or '').strip()
+        password = request.form.get('password') or ''
+
+        if not username or not password:
+            flash('Username and password are required.', 'error')
+            return redirect(url_for('login'))
+
+        users = load_users()
+        user = users.get(username)
+
+        if not user or not check_password_hash(user.get('password_hash', ''), password):
+            flash('Invalid username or password.', 'error')
+            return redirect(url_for('login'))
+
+        session['user'] = username
+        flash('Logged in successfully.', 'success')
+        return redirect(url_for('index'))
+
+    return render_template('login.html')
+
+
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    flash('You have been logged out.', 'success')
+    return redirect(url_for('index'))
+
+@app.route('/profile')
+def profile():
+    if not session.get('user'):
+        flash('Please login to view your profile.', 'error')
+        return redirect(url_for('login'))
+    username = session.get('user')
+    users = load_users()
+    user = users.get(username, {'username': username, 'email': ''})
+
+    # Collect cats reported by this user
+    lost_cats = []
+    found_cats = []
+    try:
+        for k, v in recognition_system.cat_metadata.items():
+            owner = v.get('owner_username')
+            founder = v.get('founder_username')
+            status = v.get('status')
+            if status == 'lost' and owner == username:
+                lost_cats.append(v)
+            if status == 'found' and founder == username:
+                found_cats.append(v)
+    except Exception:
+        pass
+
+    return render_template('profile.html', user=user, lost_cats=lost_cats, found_cats=found_cats)
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     """Handle file upload and processing"""
@@ -544,18 +764,27 @@ def contact():
 @app.route('/lost-cat')
 def lost_cat():
     """Lost cat report page"""
+    if not session.get('user'):
+        flash('Please login to report a lost cat.', 'error')
+        return redirect(url_for('login'))
     today = datetime.now().strftime("%Y-%m-%d")
     return render_template('lost_cat.html', today=today)
 
 @app.route('/found-cat')
 def found_cat():
     """Found cat upload page"""
+    if not session.get('user'):
+        flash('Please login to report a found cat.', 'error')
+        return redirect(url_for('login'))
     return render_template('found_cat.html')
 
 @app.route('/upload-found-cat', methods=['POST'])
 def upload_found_cat():
     """Handle found cat upload and add to dataset"""
     try:
+        if not session.get('user'):
+            flash('Please login to report a found cat.', 'error')
+            return redirect(url_for('login'))
         # Check if file was uploaded
         if 'file' not in request.files:
             flash('No file selected', 'error')
@@ -654,6 +883,7 @@ def upload_found_cat():
                     'fur_length': fur_length,
                     'color': color,
                     'breed': breed,
+                    'founder_username': session.get('user'),
                     'profile_summary': profile_summary
                 }
 
@@ -666,7 +896,7 @@ def upload_found_cat():
                     json.dump(recognition_system.cat_metadata, f)
 
                 logger.info(f"✅ Found cat added to database: {cat_id}")
-                
+
                 # Return success page with details
                 return render_template('found_cat_success.html', 
                                      filename=filename, 
@@ -873,6 +1103,9 @@ def save_found_cats_metadata():
 def upload_lost_cat():
     """Handle lost cat report and add to database"""
     try:
+        if not session.get('user'):
+            flash('Please login to report a lost cat.', 'error')
+            return redirect(url_for('login'))
         if 'file' not in request.files:
             flash('No file selected', 'error')
             return redirect(url_for('lost_cat'))
@@ -959,6 +1192,7 @@ def upload_lost_cat():
                     'fur_length': fur_length,
                     'color': color,
                     'breed': breed,
+                    'owner_username': session.get('user'),
                     'profile_summary': profile_summary
                 }
 
@@ -984,6 +1218,14 @@ def upload_lost_cat():
 def view_lost_cats():
     """View all lost cats reported by users"""
     try:
+        notifications = load_notifications()
+        notification_counts = {}
+        for n in notifications:
+            if n.get('type') == 'potential_match':
+                cid = n.get('cat_id')
+                if cid:
+                    notification_counts[cid] = notification_counts.get(cid, 0) + 1
+
         lost_cats = {k: v for k, v in recognition_system.cat_metadata.items()
                      if v.get('status') == 'lost' and not v.get('reunited', False)}
         sort = request.args.get('sort', 'upload_time')
@@ -1063,6 +1305,7 @@ def view_lost_cats():
             breed2=breed2,
             age=age,
             loc=loc,
+            notification_counts=notification_counts,
         )
     except Exception as e:
         logger.error(f"❌ Error viewing lost cats: {e}")
