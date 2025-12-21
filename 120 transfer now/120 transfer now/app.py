@@ -32,14 +32,14 @@ logger = logging.getLogger(__name__)
 geolocator = Nominatim(user_agent="pet_id_malaysia")
 
 # Configuration
-MODEL_DIR = r"D:\Cursor AI projects\Capstone2.1\models"
+MODEL_DIR = os.environ.get('MODEL_DIR', r"D:\Cursor AI projects\Capstone2.1\models")
 MODEL_BASE = os.path.join(MODEL_DIR, 'cat_identifier_efficientnet_v2')
 MODEL_SAVEDMODEL = os.path.join(MODEL_DIR, 'cat_identifier_efficientnet_v2_savedmodel')
 MODEL_WEIGHTS = os.path.join(MODEL_DIR, 'cat_identifier_efficientnet_v2_weights.h5')
 MODEL_KERAS = MODEL_BASE + '.keras'
 MODEL_H5 = MODEL_BASE + '.h5'
-HAAR_PATH = 'haarcascade_frontalcatface.xml'
-DATASET_PATH = r"D:\Cursor AI projects\Capstone2.1\120 transfer now\120 transfer now\cat_individuals_dataset\dataset_individuals_cropped\cat_individuals_dataset"
+HAAR_PATH = os.path.join(os.path.dirname(__file__), 'static', 'models', 'haarcascade_frontalcatface.xml')
+DATASET_PATH = os.environ.get('DATASET_PATH', r"D:\Cursor AI projects\Capstone2.1\dataset_individuals")
 FOUND_CATS_PATH = r"D:\Cursor AI projects\Capstone2.1\120 transfer now\120 transfer now\found_cats_dataset"  # Path for found cats
 LOST_CATS_PATH = r"D:\Cursor AI projects\Capstone2.1\120 transfer now\120 transfer now\lost_cats_dataset"  # Path for lost cats
 APP_DIR = os.path.dirname(__file__)
@@ -67,6 +67,15 @@ cat_metadata = {}
 haar_cascade = None
 
 IMG_SIZE = 224
+FAST_START = True
+MAX_IMAGES_PER_CAT = 20
+CACHE_SAVE_INTERVAL = 25
+USE_TTA = True
+TTA_COUNT = 4
+PROTOTYPE_COUNT = 3
+FUSION_ALPHA = 0.7
+FUSION_BETA = 0.15
+FUSION_GAMMA = 0.15
 
 
 def load_users():
@@ -141,6 +150,11 @@ class PetRecognitionSystem:
         self.embedding_model = None
         self.emb_matrix = None
         self.emb_ids = []
+        self.initializing = False
+        self._bg_thread = None
+        self.cat_prototypes = {}
+        self.proto_matrix = None
+        self.proto_ids = []
 
     def load_model(self):
         # 1. Try loading .keras model
@@ -212,9 +226,13 @@ class PetRecognitionSystem:
             if os.path.exists(HAAR_PATH):
                 self.haar_cascade = getattr(cv2, "CascadeClassifier")(HAAR_PATH)
             else:
-                # Use a basic face detection as fallback
                 haar_dir = getattr(cv2, "data").haarcascades
-                self.haar_cascade = getattr(cv2, "CascadeClassifier")(haar_dir + 'haarcascade_frontalface_default.xml')
+                cat_xml = os.path.join(haar_dir, 'haarcascade_frontalcatface.xml')
+                if os.path.exists(cat_xml):
+                    self.haar_cascade = getattr(cv2, "CascadeClassifier")(cat_xml)
+                else:
+                    # Fallback to human frontal face
+                    self.haar_cascade = getattr(cv2, "CascadeClassifier")(os.path.join(haar_dir, 'haarcascade_frontalface_default.xml'))
 
             if self.haar_cascade.empty():
                 logger.warning("⚠️ Haar Cascade not loaded, using full image preprocessing")
@@ -295,51 +313,114 @@ class PetRecognitionSystem:
     def extract_embedding(self, img_path):
         """Extract embedding from image using the EfficientNetV2 embedding model"""
         try:
-            img_batch, _ = self.preprocess_image(img_path)
-            if img_batch is None:
+            img_batch, img_pil = self.preprocess_image(img_path)
+            if img_batch is None or img_pil is None:
                 return None
 
             if self.embedding_model is None:
                 logger.error("❌ Embedding model not initialized")
                 return None
 
-            # Handle different model types (Keras Model vs TFSMLayer)
-            if hasattr(self.embedding_model, 'predict'):
-                embedding = self.embedding_model.predict(img_batch)
-            else:
-                # For TFSMLayer or direct call
-                embedding = self.embedding_model(img_batch)
-                # TFSMLayer returns a dict
-                if isinstance(embedding, dict):
-                    embedding = list(embedding.values())[0]
-            
-            # Convert tensor to numpy if needed
-            if hasattr(embedding, 'numpy'):
-                embedding = embedding.numpy()
-                
-            embedding = embedding.flatten()
-            # If not already normalized by the model, normalize here
-            embedding = embedding / (np.linalg.norm(embedding) + 1e-8)
+            def _embed(batch):
+                if hasattr(self.embedding_model, 'predict'):
+                    e = self.embedding_model.predict(batch)
+                else:
+                    e = self.embedding_model(batch)
+                    if isinstance(e, dict):
+                        e = list(e.values())[0]
+                if hasattr(e, 'numpy'):
+                    e = e.numpy()
+                e = e.flatten()
+                e = e / (np.linalg.norm(e) + 1e-8)
+                return e
 
-            return embedding
+            if not USE_TTA:
+                return _embed(img_batch)
+
+            embs = []
+            base = np.squeeze(img_batch, axis=0)
+            variants = [base]
+            flip = np.flip(base, axis=1)
+            variants.append(flip)
+            bright = np.clip(base * 1.10, -1.0, 1.0)
+            variants.append(bright)
+            contrast = np.clip((base - np.mean(base)) * 1.10 + np.mean(base), -1.0, 1.0)
+            variants.append(contrast)
+            variants = variants[:TTA_COUNT]
+            for v in variants:
+                b = np.expand_dims(v, axis=0)
+                embs.append(_embed(b))
+            emb = np.mean(np.stack(embs, axis=0), axis=0)
+            emb = emb / (np.linalg.norm(emb) + 1e-8)
+            return emb
 
         except Exception as e:
             logger.error(f"❌ Error extracting embedding from {img_path}: {e}")
             return None
 
-    def load_database(self):
+    def compute_color_feature(self, pil_img):
+        try:
+            arr = np.array(pil_img)
+            hsv = getattr(cv2, "cvtColor")(arr, getattr(cv2, "COLOR_RGB2HSV"))
+            h = hsv[:, :, 0]
+            s = hsv[:, :, 1]
+            v = hsv[:, :, 2]
+            hist_h = np.histogram(h, bins=16, range=(0, 180))[0].astype(np.float32)
+            hist_s = np.histogram(s, bins=16, range=(0, 255))[0].astype(np.float32)
+            hist_v = np.histogram(v, bins=16, range=(0, 255))[0].astype(np.float32)
+            feat = np.concatenate([hist_h, hist_s, hist_v])
+            feat = feat / (np.linalg.norm(feat) + 1e-8)
+            return feat
+        except Exception:
+            return None
+
+    def color_similarity(self, f1, f2):
+        if f1 is None or f2 is None:
+            return 0.0
+        return float(np.dot(f1, f2))
+
+    def orb_similarity(self, pil1, pil2):
+        try:
+            arr1 = np.array(pil1)
+            arr2 = np.array(pil2)
+            g1 = getattr(cv2, "cvtColor")(arr1, getattr(cv2, "COLOR_RGB2GRAY"))
+            g2 = getattr(cv2, "cvtColor")(arr2, getattr(cv2, "COLOR_RGB2GRAY"))
+            orb = getattr(cv2, "ORB_create")(nfeatures=500)
+            kps1, des1 = orb.detectAndCompute(g1, None)
+            kps2, des2 = orb.detectAndCompute(g2, None)
+            if des1 is None or des2 is None:
+                return 0.0
+            bf = getattr(cv2, "BFMatcher")(getattr(cv2, "NORM_HAMMING"), crossCheck=False)
+            matches = bf.knnMatch(des1, des2, k=2)
+            good = 0
+            for m in matches:
+                if len(m) == 2:
+                    if m[0].distance < 0.75 * m[1].distance:
+                        good += 1
+            denom = max(1, min(len(des1), len(des2)))
+            score = good / denom
+            return float(score)
+        except Exception:
+            return 0.0
+
+    def load_database(self, force: bool = False):
         """Load cat database and extract embeddings"""
         logger.info("🔄 Loading cat database...")
 
         try:
             # Try to load from cache first
-            if os.path.exists(EMBEDDINGS_CACHE) and os.path.exists(METADATA_CACHE):
+            if (not force) and os.path.exists(EMBEDDINGS_CACHE) and os.path.exists(METADATA_CACHE):
                 try:
                     self.cat_embeddings = np.load(EMBEDDINGS_CACHE, allow_pickle=True).item()
                     with open(METADATA_CACHE, 'r') as f:
                         self.cat_metadata = json.load(f)
                     logger.info(f"✅ Loaded {len(self.cat_embeddings)} cats from cache")
                     self.build_matrix()
+                    # Also rebuild prototypes in background for improved accuracy
+                    try:
+                        self.build_prototype_matrix()
+                    except Exception:
+                        pass
                     return True
                 except Exception as e:
                     logger.warning(f"⚠️ Cache load failed ({e}); rebuilding from dataset")
@@ -360,24 +441,67 @@ class PetRecognitionSystem:
 
             logger.info(f"📁 Found {sum(len(v) for v in cat_to_images.values())} images across {len(cat_to_images)} cats")
 
+            from sklearn.cluster import KMeans
             for idx, (cat_id, paths) in enumerate(cat_to_images.items(), start=1):
                 embs = []
-                for p in paths:
+                emb_paths = []
+                use_paths = paths
+                if FAST_START:
+                    use_paths = paths[:MAX_IMAGES_PER_CAT]
+                for p in use_paths:
                     emb = self.extract_embedding(p)
                     if emb is not None:
                         embs.append(emb)
+                        emb_paths.append(p)
                 if not embs:
                     continue
-                centroid = np.mean(np.stack(embs, axis=0), axis=0)
+                E = np.stack(embs, axis=0)
+                # Save single centroid for backward compatibility and caching
+                centroid = np.mean(E, axis=0)
                 centroid = centroid / (np.linalg.norm(centroid) + 1e-8)
                 self.cat_embeddings[cat_id] = centroid
-                rep_path = paths[0]
+                rep_path = emb_paths[0]
                 self.cat_metadata[cat_id] = {
                     'filename': os.path.basename(rep_path),
                     'image_path': rep_path,
                     'id': cat_id,
                     'name': f"Cat {cat_id}"
                 }
+                # Build multi-prototypes with KMeans when possible
+                n = min(PROTOTYPE_COUNT, max(1, len(E)))
+                proto_list = []
+                if len(E) >= max(2, PROTOTYPE_COUNT):
+                    try:
+                        km = KMeans(n_clusters=n, n_init=5, random_state=42)
+                        labels = km.fit_predict(E)
+                        centers = km.cluster_centers_
+                        for j in range(n):
+                            c = centers[j]
+                            c = c / (np.linalg.norm(c) + 1e-8)
+                            # representative path from cluster
+                            idxs = [i for i, lb in enumerate(labels) if lb == j]
+                            rpath = emb_paths[idxs[0]] if idxs else emb_paths[0]
+                            _, pil = self.preprocess_image(rpath)
+                            color = self.compute_color_feature(pil) if pil is not None else None
+                            proto_list.append({'id': f"{cat_id}#p{j+1}", 'emb': c, 'color': color, 'rep_path': rpath})
+                    except Exception as e:
+                        logger.warning(f"⚠️ KMeans failed for {cat_id}: {e}; using centroid")
+                        _, pil = self.preprocess_image(rep_path)
+                        color = self.compute_color_feature(pil) if pil is not None else None
+                        proto_list.append({'id': f"{cat_id}#p1", 'emb': centroid, 'color': color, 'rep_path': rep_path})
+                else:
+                    _, pil = self.preprocess_image(rep_path)
+                    color = self.compute_color_feature(pil) if pil is not None else None
+                    proto_list.append({'id': f"{cat_id}#p1", 'emb': centroid, 'color': color, 'rep_path': rep_path})
+                self.cat_prototypes[cat_id] = proto_list
+                if idx % CACHE_SAVE_INTERVAL == 0:
+                    try:
+                        np.save(EMBEDDINGS_CACHE, np.array(self.cat_embeddings, dtype=object))
+                        with open(METADATA_CACHE, 'w') as f:
+                            json.dump(self.cat_metadata, f)
+                        logger.info(f"💾 Cached {len(self.cat_embeddings)} cats processed...")
+                    except Exception as e:
+                        logger.warning(f"⚠️ Cache save skipped ({e})")
 
             # Save to cache for future use (use object array for dict)
             np.save(EMBEDDINGS_CACHE, np.array(self.cat_embeddings, dtype=object))
@@ -386,6 +510,7 @@ class PetRecognitionSystem:
 
             logger.info(f"✅ Successfully loaded {len(self.cat_embeddings)} cats")
             self.build_matrix()
+            self.build_prototype_matrix()
             return True
 
         except Exception as e:
@@ -407,6 +532,40 @@ class PetRecognitionSystem:
             logger.warning(f"⚠️ Error building embedding matrix: {e}")
             self.emb_matrix = None
             self.emb_ids = []
+    def build_prototype_matrix(self):
+        try:
+            ids = []
+            vecs = []
+            for cat_id, plist in self.cat_prototypes.items():
+                for item in plist:
+                    ids.append(item['id'])
+                    vecs.append(item['emb'])
+            if not vecs:
+                self.proto_matrix = None
+                self.proto_ids = []
+                return
+            self.proto_matrix = np.stack(vecs, axis=0)
+            self.proto_ids = ids
+        except Exception as e:
+            logger.warning(f"⚠️ Error building prototype matrix: {e}")
+            self.proto_matrix = None
+            self.proto_ids = []
+    def start_background_index(self, force: bool = False):
+        try:
+            if self._bg_thread and self._bg_thread.is_alive():
+                return
+            import threading
+            def _task():
+                self.initializing = True
+                try:
+                    self.load_database(force=force)
+                finally:
+                    self.initializing = False
+            self._bg_thread = threading.Thread(target=_task, daemon=True)
+            self._bg_thread.start()
+            logger.info("🧵 Background indexing started")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to start background indexing: {e}")
     def find_matches(self, uploaded_img_path, top_k=10):
         """Find top k most similar cats using L2 distance on normalized embeddings"""
         try:
@@ -414,18 +573,36 @@ class PetRecognitionSystem:
             query_embedding = self.extract_embedding(uploaded_img_path)
             if query_embedding is None:
                 return []
-            if self.emb_matrix is not None and len(self.emb_ids) > 0:
-                dists = np.sum((self.emb_matrix - query_embedding) ** 2, axis=1)
-                cosines = self.emb_matrix @ query_embedding
-                idxs = np.argsort(dists)[:top_k]
+            # Compute color feature for query
+            _, q_pil = self.preprocess_image(uploaded_img_path)
+            q_color = self.compute_color_feature(q_pil) if q_pil is not None else None
+            # Prototype matching with fusion when available
+            if self.proto_matrix is not None and len(self.proto_ids) > 0:
+                cos = self.proto_matrix @ query_embedding
+                fused = []
+                for i, pid in enumerate(self.proto_ids):
+                    base_id = pid.split('#')[0]
+                    color_sim = 0.0
+                    rep_pil = None
+                    for it in self.cat_prototypes.get(base_id, []):
+                        if it['id'] == pid:
+                            color_sim = self.color_similarity(q_color, it['color'])
+                            _, rep_pil = self.preprocess_image(it['rep_path'])
+                            break
+                    orb_sim = self.orb_similarity(q_pil, rep_pil) if rep_pil is not None else 0.0
+                    score = FUSION_ALPHA * float(cos[i]) + FUSION_BETA * float(color_sim) + FUSION_GAMMA * float(orb_sim)
+                    fused.append((score, i, base_id))
+                fused.sort(key=lambda x: -x[0])
+                top = fused[:top_k]
                 results = []
-                for i in idxs:
-                    cid = self.emb_ids[i]
+                for score, i, base_id in top:
+                    l2 = float(np.sum((self.proto_matrix[i] - query_embedding) ** 2))
                     results.append({
-                        'cat_id': cid,
-                        'l2_distance': float(dists[i]),
-                        'cosine': float(cosines[i]),
-                        'metadata': self.cat_metadata.get(cid, {})
+                        'cat_id': base_id,
+                        'l2_distance': l2,
+                        'cosine': float(cos[i]),
+                        'metadata': self.cat_metadata.get(base_id, {}),
+                        'fusion_score': float(score)
                     })
                 return results
             else:
@@ -439,7 +616,7 @@ class PetRecognitionSystem:
                         'cosine': cos,
                         'metadata': self.cat_metadata.get(cat_id, {})
                     })
-                results.sort(key=lambda x: x['l2_distance'])
+                results.sort(key=lambda x: -x['cosine'])
                 return results[:top_k]
 
         except Exception as e:
@@ -462,7 +639,7 @@ class PetRecognitionSystem:
                 cosines = np.squeeze(cosines, axis=2)
                 mean_dists = np.mean(dists, axis=0)
                 mean_cos = np.mean(cosines, axis=0)
-                idxs = np.argsort(mean_dists)[:top_k]
+                idxs = np.argsort(-mean_cos)[:top_k]
                 results = []
                 for i in idxs:
                     cid = self.emb_ids[i]
@@ -484,7 +661,7 @@ class PetRecognitionSystem:
                         'cosine': float(np.mean(c)),
                         'metadata': self.cat_metadata.get(cat_id, {})
                     })
-                agg.sort(key=lambda x: x['l2_distance'])
+                agg.sort(key=lambda x: -x['cosine'])
                 return agg[:top_k]
         except Exception as e:
             logger.error(f"❌ Error finding matches (multi): {e}")
@@ -520,9 +697,18 @@ def initialize_system():
     recognition_system.load_haar_cascade()
 
     # Load database
-    if not recognition_system.load_database():
-        logger.error("❌ Failed to load database. System cannot start.")
-        return False
+    try:
+        if os.path.exists(EMBEDDINGS_CACHE) and os.path.exists(METADATA_CACHE):
+            if not recognition_system.load_database(force=False):
+                logger.error("❌ Failed to load database from cache.")
+                return False
+            # Kick off a background rebuild to improve accuracy with more images
+            recognition_system.start_background_index(force=True)
+        else:
+            recognition_system.start_background_index(force=True)
+    except Exception as e:
+        logger.warning(f"⚠️ Database initialization fallback: {e}")
+        recognition_system.start_background_index()
 
     logger.info("✅ System initialized successfully!")
     return True
@@ -1381,9 +1567,21 @@ def api_health():
 @app.route('/api/reindex', methods=['POST'])
 def api_reindex():
     try:
-        if not recognition_system.load_database():
+        force = False
+        try:
+            # accept JSON or form flag 'force'
+            val = (request.json or {}).get('force') if request.is_json else request.form.get('force')
+            force = str(val).lower() in ('1', 'true', 'yes') if val is not None else False
+        except Exception:
+            force = False
+        if not recognition_system.load_database(force=force):
             return jsonify({'status': 'failed'}), 500
-        return jsonify({'status': 'ok', 'embeddings_count': len(recognition_system.cat_embeddings)})
+        # rebuild prototype matrix after reindex
+        try:
+            recognition_system.build_prototype_matrix()
+        except Exception:
+            pass
+        return jsonify({'status': 'ok', 'embeddings_count': len(recognition_system.cat_embeddings), 'force': force})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

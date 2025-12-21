@@ -223,12 +223,13 @@
                                             </div>
                                         </div>
                                         <div class="text-end">
+                                            {% set score = (match.fusion_score * 100) if match.fusion_score is defined else (match.cosine * 100) %}
                                             <div class="similarity-score">
-                                                <span class="score-value fw-bold {{ 'text-success' if (match.cosine * 100) > 85 else 'text-warning' if (match.cosine * 100) > 70 else 'text-danger' }}">
-                                                    {{ (match.cosine * 100)|round(1) }}%
+                                                <span class="score-value fw-bold {{ 'text-success' if score > 85 else 'text-warning' if score > 70 else 'text-danger' }}">
+                                                    {{ score|round(1) }}%
                                                 </span>
                                             </div>
-                                            <small class="text-muted">Similarity</small>
+                                            <small class="text-muted">Match Score</small>
                                         </div>
                                     </div>
 
@@ -250,29 +251,29 @@
                                                     <!-- Similarity Bar -->
                                                     <div class="mb-3">
                                                         <div class="d-flex justify-content-between align-items-center mb-1">
-                                                            <small class="text-muted">Cosine Similarity</small>
-                                                            {% set cosine_percent = (match.cosine * 100)|round(1) %}
-                                                            {% set bar_class = 'bg-success' if cosine_percent > 85 else 'bg-warning' if cosine_percent > 70 else 'bg-danger' %}
-                                                            <small class="fw-bold">{{ cosine_percent }}%</small>
+                                                            <small class="text-muted">Match Score (cosine + color + ORB)</small>
+                                                            {% set score_percent = (match.fusion_score * 100)|round(1) if match.fusion_score is defined else (match.cosine * 100)|round(1) %}
+                                                            {% set bar_class = 'bg-success' if score_percent > 85 else 'bg-warning' if score_percent > 70 else 'bg-danger' %}
+                                                            <small class="fw-bold">{{ score_percent }}%</small>
                                                         </div>
-                                                    <div class="progress" style="height: 8px;">
+                                                        <div class="progress" style="height: 8px;">
                                                             <div class="progress-bar {{ bar_class }}"
                                                                  role="progressbar"
-                                                                 style="width: {{ cosine_percent }}%"
-                                                                 aria-valuenow="{{ cosine_percent }}"
+                                                                 style="width: {{ score_percent }}%"
+                                                                 aria-valuenow="{{ score_percent }}"
                                                                  aria-valuemin="0"
                                                                  aria-valuemax="100">
                                                             </div>
-                                                    </div>
+                                                        </div>
                                                     </div>
 
                                                     <!-- Match Confidence -->
                                                     <div class="mb-3">
                                                     <span class="badge {{ bar_class }} bg-opacity-10 text-dark">
-                                                            <i class="bi bi-{{ 'check-circle-fill' if cosine_percent > 85 else 'exclamation-triangle-fill' if cosine_percent > 70 else 'x-circle-fill' }} me-1"></i>
-                                                            {% if cosine_percent > 85 %}
+                                                            <i class="bi bi-{{ 'check-circle-fill' if score_percent > 85 else 'exclamation-triangle-fill' if score_percent > 70 else 'x-circle-fill' }} me-1"></i>
+                                                            {% if score_percent > 85 %}
                                                                 High Match
-                                                            {% elif cosine_percent > 70 %}
+                                                            {% elif score_percent > 70 %}
                                                                 Possible Match
                                                             {% else %}
                                                                 Low Match

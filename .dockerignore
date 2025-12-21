@@ -1,0 +1,17 @@
+__pycache__/
+.pytest_cache/
+.venv/
+*.pyc
+*.pyo
+*.pyd
+*.DS_Store
+.git/
+node_modules/
+static/uploads/
+found_cats_dataset/
+lost_cats_dataset/
+cat_embeddings_cache.npy
+cat_metadata_cache.json
+found_cats_metadata.json
+models/*
+dataset_individuals/*
