@@ -413,10 +413,12 @@
                                             </button>
                                         {% endif %}
                                         
-                                        <button class="btn btn-success btn-sm" 
-                                                onclick="showReunionModal('{{ cat.id }}', '{{ cat.name }}')">
-                                            <i class="bi bi-heart-fill me-1"></i>Mark as Reunited
-                                        </button>
+                                        {% if session.get('user') and session.get('user') == cat.founder_username %}
+                                            <button class="btn btn-success btn-sm" 
+                                                    onclick="showReunionModal('{{ cat.id }}', '{{ cat.name }}')">
+                                                <i class="bi bi-heart-fill me-1"></i>Mark as Reunited
+                                            </button>
+                                        {% endif %}
                                     </div>
                                 </div>
 

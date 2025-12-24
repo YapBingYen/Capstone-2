@@ -39,7 +39,7 @@ MODEL_WEIGHTS = os.path.join(MODEL_DIR, 'cat_identifier_efficientnet_v2_weights.
 MODEL_KERAS = MODEL_BASE + '.keras'
 MODEL_H5 = MODEL_BASE + '.h5'
 HAAR_PATH = os.path.join(os.path.dirname(__file__), 'static', 'models', 'haarcascade_frontalcatface.xml')
-DATASET_PATH = os.environ.get('DATASET_PATH', r"D:\Cursor AI projects\Capstone2.1\dataset_individuals")
+DATASET_PATH = os.environ.get('DATASET_PATH', r"D:\Cursor AI projects\Capstone2.1\dataset_individuals_cropped")
 FOUND_CATS_PATH = r"D:\Cursor AI projects\Capstone2.1\120 transfer now\120 transfer now\found_cats_dataset"  # Path for found cats
 LOST_CATS_PATH = r"D:\Cursor AI projects\Capstone2.1\120 transfer now\120 transfer now\lost_cats_dataset"  # Path for lost cats
 APP_DIR = os.path.dirname(__file__)
@@ -155,6 +155,9 @@ class PetRecognitionSystem:
         self.cat_prototypes = {}
         self.proto_matrix = None
         self.proto_ids = []
+        self.use_tta = USE_TTA
+        self.index_use_tta = USE_TTA
+        self.index_max_images_per_cat = MAX_IMAGES_PER_CAT
 
     def load_model(self):
         # 1. Try loading .keras model
@@ -257,18 +260,21 @@ class PetRecognitionSystem:
             # Try cat face detection if Haar Cascade is available
             if self.haar_cascade is not None:
                 gray = getattr(cv2, "cvtColor")(img, getattr(cv2, "COLOR_BGR2GRAY"))
-                faces = self.haar_cascade.detectMultiScale(gray, 1.1, 4)
+                faces = self.haar_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4)
 
                 if len(faces) > 0:
-                    # Use the first detected face
-                    x, y, w, h = faces[0]
-                    # Add some padding around the detected face
-                    padding = 20
-                    x_start = max(0, x - padding)
-                    y_start = max(0, y - padding)
-                    x_end = min(img_rgb.shape[1], x + w + padding)
-                    y_end = min(img_rgb.shape[0], y + h + padding)
-
+                    # Use the largest detected face
+                    x, y, w, h = max(faces, key=lambda r: r[2] * r[3])
+                    # Dynamic padding based on face size and make square crop
+                    pad = int(0.2 * max(w, h))
+                    cx = x + w // 2
+                    cy = y + h // 2
+                    side = int(1.2 * max(w, h))
+                    half = side // 2 + pad
+                    x_start = max(0, cx - half)
+                    y_start = max(0, cy - half)
+                    x_end = min(img_rgb.shape[1], cx + half)
+                    y_end = min(img_rgb.shape[0], cy + half)
                     img_cropped = img_rgb[y_start:y_end, x_start:x_end]
                 else:
                     # Fallback to center crop if no face detected
@@ -294,6 +300,21 @@ class PetRecognitionSystem:
             logger.error(f"❌ Error preprocessing image {img_path}: {e}")
             return None, None
 
+    def is_low_quality_image(self, img_path):
+        """Simple quality gate: skip too blurry or tiny images"""
+        try:
+            img = getattr(cv2, "imread")(img_path)
+            if img is None:
+                return True
+            h, w = img.shape[:2]
+            if min(h, w) < 160:
+                return True
+            gray = getattr(cv2, "cvtColor")(img, getattr(cv2, "COLOR_BGR2GRAY"))
+            fm = getattr(cv2, "Laplacian")(gray, getattr(cv2, "CV_64F")).var()
+            return fm < 80.0
+        except Exception:
+            return False
+
     def center_crop(self, img):
         """Center crop the image to make it more square"""
         h, w = img.shape[:2]
@@ -317,15 +338,16 @@ class PetRecognitionSystem:
             if img_batch is None or img_pil is None:
                 return None
 
-            if self.embedding_model is None:
+            m = self.embedding_model
+            if m is None:
                 logger.error("❌ Embedding model not initialized")
                 return None
 
             def _embed(batch):
-                if hasattr(self.embedding_model, 'predict'):
-                    e = self.embedding_model.predict(batch)
+                if hasattr(m, 'predict'):
+                    e = m.predict(batch)
                 else:
-                    e = self.embedding_model(batch)
+                    e = m(batch)
                     if isinstance(e, dict):
                         e = list(e.values())[0]
                 if hasattr(e, 'numpy'):
@@ -334,7 +356,7 @@ class PetRecognitionSystem:
                 e = e / (np.linalg.norm(e) + 1e-8)
                 return e
 
-            if not USE_TTA:
+            if not self.use_tta:
                 return _embed(img_batch)
 
             embs = []
@@ -414,6 +436,27 @@ class PetRecognitionSystem:
                     self.cat_embeddings = np.load(EMBEDDINGS_CACHE, allow_pickle=True).item()
                     with open(METADATA_CACHE, 'r') as f:
                         self.cat_metadata = json.load(f)
+                    try:
+                        for k, v in list(self.cat_metadata.items()):
+                            if isinstance(v, dict):
+                                if not v.get('status'):
+                                    v['status'] = 'found'
+                                if not v.get('founder_username'):
+                                    v['founder_username'] = 'Dataset'
+                                if not v.get('upload_time'):
+                                    v['upload_time'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                if 'location' not in v:
+                                    v['location'] = ''
+                                if 'date_found' not in v:
+                                    v['date_found'] = ''
+                                if 'lat' not in v:
+                                    v['lat'] = None
+                                if 'lng' not in v:
+                                    v['lng'] = None
+                        with open(METADATA_CACHE, 'w') as f2:
+                            json.dump(self.cat_metadata, f2)
+                    except Exception:
+                        pass
                     logger.info(f"✅ Loaded {len(self.cat_embeddings)} cats from cache")
                     self.build_matrix()
                     # Also rebuild prototypes in background for improved accuracy
@@ -442,13 +485,17 @@ class PetRecognitionSystem:
             logger.info(f"📁 Found {sum(len(v) for v in cat_to_images.values())} images across {len(cat_to_images)} cats")
 
             from sklearn.cluster import KMeans
+            prev_tta = self.use_tta
+            self.use_tta = self.index_use_tta
             for idx, (cat_id, paths) in enumerate(cat_to_images.items(), start=1):
                 embs = []
                 emb_paths = []
                 use_paths = paths
-                if FAST_START:
-                    use_paths = paths[:MAX_IMAGES_PER_CAT]
+                if FAST_START or self.index_max_images_per_cat:
+                    use_paths = paths[:self.index_max_images_per_cat]
                 for p in use_paths:
+                    if self.is_low_quality_image(p):
+                        continue
                     emb = self.extract_embedding(p)
                     if emb is not None:
                         embs.append(emb)
@@ -465,14 +512,22 @@ class PetRecognitionSystem:
                     'filename': os.path.basename(rep_path),
                     'image_path': rep_path,
                     'id': cat_id,
-                    'name': f"Cat {cat_id}"
+                    'name': f"Cat {cat_id}",
+                    'status': 'found',
+                    'founder_username': 'Dataset',
+                    'upload_time': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'date_found': '',
+                    'location': '',
+                    'lat': None,
+                    'lng': None
                 }
                 # Build multi-prototypes with KMeans when possible
-                n = min(PROTOTYPE_COUNT, max(1, len(E)))
+                # dynamic prototype count scales with images (up to 5)
+                n = max(1, min(5, max(1, len(E) // 6)))
                 proto_list = []
                 if len(E) >= max(2, PROTOTYPE_COUNT):
                     try:
-                        km = KMeans(n_clusters=n, n_init=5, random_state=42)
+                        km = KMeans(n_clusters=n, n_init='auto', random_state=42)
                         labels = km.fit_predict(E)
                         centers = km.cluster_centers_
                         for j in range(n):
@@ -511,6 +566,7 @@ class PetRecognitionSystem:
             logger.info(f"✅ Successfully loaded {len(self.cat_embeddings)} cats")
             self.build_matrix()
             self.build_prototype_matrix()
+            self.use_tta = prev_tta
             return True
 
         except Exception as e:
@@ -552,7 +608,7 @@ class PetRecognitionSystem:
             self.proto_ids = []
     def start_background_index(self, force: bool = False):
         try:
-            if self._bg_thread and self._bg_thread.is_alive():
+            if self._bg_thread and self._bg_thread.is_alive() and not force:
                 return
             import threading
             def _task():
@@ -563,7 +619,7 @@ class PetRecognitionSystem:
                     self.initializing = False
             self._bg_thread = threading.Thread(target=_task, daemon=True)
             self._bg_thread.start()
-            logger.info("🧵 Background indexing started")
+            logger.info(f"🧵 Background indexing started (force={force})")
         except Exception as e:
             logger.warning(f"⚠️ Failed to start background indexing: {e}")
     def find_matches(self, uploaded_img_path, top_k=10):
@@ -1106,7 +1162,7 @@ def view_found_cats():
     """View all found cats in the database"""
     try:
         found_cats = {k: v for k, v in recognition_system.cat_metadata.items() 
-                     if v.get('status') == 'found' and not v.get('reunited', False)}
+                     if (v.get('status') == 'found' or not v.get('status')) and not v.get('reunited', False)}
 
         sort = request.args.get('sort', 'upload_time')
         dir_ = request.args.get('dir', 'desc')
@@ -1221,7 +1277,7 @@ def api_found_cats_map():
         # Filter found cats that have coordinates
         found_cats = []
         for cat in recognition_system.cat_metadata.values():
-            if cat.get('status') == 'found' and not cat.get('reunited', False):
+            if (cat.get('status') == 'found' or not cat.get('status')) and not cat.get('reunited', False):
                 if cat.get('lat') and cat.get('lng'):
                     found_cats.append({
                         'id': cat.get('id'),
@@ -1245,6 +1301,13 @@ def mark_reunited(cat_id):
     try:
         if cat_id not in recognition_system.cat_metadata:
             flash('Cat not found in database.', 'error')
+            return redirect(url_for('view_found_cats'))
+            
+        cat = recognition_system.cat_metadata[cat_id]
+        
+        # Check permissions
+        if cat.get('founder_username') and cat.get('founder_username') != session.get('user'):
+            flash('You do not have permission to mark this cat as reunited.', 'error')
             return redirect(url_for('view_found_cats'))
         
         # Get reunion details from form
@@ -1574,6 +1637,9 @@ def api_reindex():
             force = str(val).lower() in ('1', 'true', 'yes') if val is not None else False
         except Exception:
             force = False
+        # quality settings
+        recognition_system.index_use_tta = True
+        recognition_system.index_max_images_per_cat = 20
         if not recognition_system.load_database(force=force):
             return jsonify({'status': 'failed'}), 500
         # rebuild prototype matrix after reindex
@@ -1581,7 +1647,41 @@ def api_reindex():
             recognition_system.build_prototype_matrix()
         except Exception:
             pass
-        return jsonify({'status': 'ok', 'embeddings_count': len(recognition_system.cat_embeddings), 'force': force})
+        return jsonify({'status': 'ok', 'embeddings_count': len(recognition_system.cat_embeddings), 'force': force, 'mode': 'quality'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/reindex_background', methods=['POST'])
+def api_reindex_background():
+    try:
+        force = False
+        try:
+            val = (request.json or {}).get('force') if request.is_json else request.form.get('force')
+            force = str(val).lower() in ('1', 'true', 'yes') if val is not None else False
+        except Exception:
+            force = False
+        recognition_system.start_background_index(force=force)
+        return jsonify({'status': 'started', 'force': force, 'embeddings_count': len(recognition_system.cat_embeddings)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/reindex_fast_then_quality', methods=['POST'])
+def api_reindex_fast_then_quality():
+    try:
+        # fast settings
+        recognition_system.index_use_tta = False
+        recognition_system.index_max_images_per_cat = 8
+        if not recognition_system.load_database(force=True):
+            return jsonify({'status': 'failed'}), 500
+        # switch to quality settings and start background upgrade
+        recognition_system.index_use_tta = True
+        recognition_system.index_max_images_per_cat = 20
+        recognition_system.start_background_index(force=True)
+        try:
+            recognition_system.build_prototype_matrix()
+        except Exception:
+            pass
+        return jsonify({'status': 'ok', 'phase': 'fast+quality', 'embeddings_count': len(recognition_system.cat_embeddings)})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

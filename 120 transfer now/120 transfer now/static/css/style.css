@@ -508,6 +508,13 @@ h1, h2, h3, h4, h5, h6 {
   background-color: #FFFDF9;
 }
 
+.form-select {
+  padding-right: 2.6rem !important;
+  background-position: right 0.9rem center;
+  background-repeat: no-repeat;
+  background-size: 16px 12px;
+}
+
 /* ===============================
    Cards & Components
    =============================== */
@@ -554,6 +561,20 @@ h1, h2, h3, h4, h5, h6 {
   border-color: var(--primary-color);
 }
 
+.option-card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}
+.option-card-body .btn {
+  margin-top: auto;
+}
+
+.card .card-body.d-flex {
+  height: 100%;
+}
+
 /* ===============================
    Buttons
    =============================== */
@@ -595,6 +616,19 @@ h1, h2, h3, h4, h5, h6 {
   border-color: transparent;
   color: white;
   box-shadow: 0 4px 15px rgba(234, 163, 93, 0.3);
+}
+
+.btn-outline-dark {
+  border-color: var(--dark-color);
+  color: var(--dark-color);
+  background: transparent;
+}
+
+.btn-outline-dark:hover {
+  background: var(--dark-color);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 4px 15px rgba(59, 59, 59, 0.3);
 }
 
 .btn-success {

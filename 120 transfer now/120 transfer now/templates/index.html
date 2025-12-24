@@ -337,32 +337,10 @@
                 <h2 class="display-5 fw-bold mb-3">How Can We Help You?</h2>
                 <p class="lead">Choose the option that fits your situation</p>
             </div>
-            <div class="row g-4">
+            <div class="row g-4 align-items-stretch">
                 <div class="col-md-6">
                     <div class="card border-0 shadow-lg h-100">
-                        <div class="card-body p-5 text-center">
-                            <div class="feature-icon-large bg-danger bg-gradient text-white rounded-circle mx-auto mb-4">
-                                <i class="bi bi-search"></i>
-                            </div>
-                            <h3 class="fw-bold mb-3">Lost Your Cat?</h3>
-                            <p class="text-muted mb-4">
-                                Upload your pet's photo and let our AI search through our database 
-                                to find potential matches with found cats.
-                            </p>
-                            <ul class="list-unstyled text-start mb-4">
-                                <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>AI-powered matching</li>
-                                <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Instant results</li>
-                                <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>High accuracy</li>
-                            </ul>
-                            <a href="#uploadForm" class="btn btn-danger btn-lg w-100" onclick="event.preventDefault(); (function(){const input=document.getElementById('fileInput'); input.value=''; input.click();})()">
-                                <i class="bi bi-search me-2"></i>Search for My Pet
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card border-0 shadow-lg h-100">
-                        <div class="card-body p-5 text-center">
+                        <div class="card-body p-5 text-center d-flex flex-column">
                             <div class="feature-icon-large bg-success bg-gradient text-white rounded-circle mx-auto mb-4">
                                 <i class="bi bi-camera"></i>
                             </div>
@@ -376,8 +354,30 @@
                                 <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Help owners find pets</li>
                                 <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Community support</li>
                             </ul>
-                            <a href="{{ url_for('found_cat') }}" class="btn btn-success btn-lg w-100">
+                            <a href="{{ url_for('found_cat') }}" class="btn btn-success btn-lg w-100 mt-auto">
                                 <i class="bi bi-camera me-2"></i>Report Found Cat
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-lg h-100">
+                        <div class="card-body p-5 text-center d-flex flex-column">
+                            <div class="feature-icon-large bg-danger bg-gradient text-white rounded-circle mx-auto mb-4">
+                                <i class="bi bi-search"></i>
+                            </div>
+                            <h3 class="fw-bold mb-3">Lost Your Cat?</h3>
+                            <p class="text-muted mb-4">
+                                Upload your pet's photo and let our AI search through our database 
+                                to find potential matches with found cats.
+                            </p>
+                            <ul class="list-unstyled text-start mb-4">
+                                <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>AI-powered matching</li>
+                                <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Instant results</li>
+                                <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>High accuracy</li>
+                            </ul>
+                            <a href="{{ url_for('lost_cat') }}" class="btn btn-danger btn-lg w-100 mt-auto">
+                                <i class="bi bi-search me-2"></i>Search for My Pet
                             </a>
                         </div>
                     </div>

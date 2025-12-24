@@ -48,6 +48,16 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('lost_cat') }}">
+                            <i class="bi bi-exclamation-circle me-1"></i>Report Lost Cat
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('view_lost_cats') }}">
+                            <i class="bi bi-search-heart me-1"></i>View Lost Cats
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('view_found_cats') }}">
                             <i class="bi bi-grid-3x3-gap me-1"></i>View Found Cats
                         </a>
@@ -259,7 +269,8 @@
                                                         <div class="progress" style="height: 8px;">
                                                             <div class="progress-bar {{ bar_class }}"
                                                                  role="progressbar"
-                                                                 style="width: {{ score_percent }}%"
+                                                                 data-score="{{ score_percent }}"
+                                                                 style="width: 0%"
                                                                  aria-valuenow="{{ score_percent }}"
                                                                  aria-valuemin="0"
                                                                  aria-valuemax="100">
@@ -303,12 +314,15 @@
                                                 <i class="bi bi-clock me-1"></i>
                                                 Analysis completed
                                             </small>
-                                            <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary" onclick="viewDetails('{{ match.metadata.id }}')">
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-outline-primary rounded-pill btn-sm" onclick="viewDetails('{{ match.metadata.id }}')">
                                                     <i class="bi bi-eye me-1"></i>View Details
                                                 </button>
-                                                <button class="btn btn-outline-success" onclick="contactFinder('{{ match.metadata.id }}')">
+                                                <button class="btn btn-outline-dark rounded-pill btn-sm" onclick="contactFinder('{{ match.metadata.id }}')">
                                                     <i class="bi bi-envelope me-1"></i>Contact Finder
+                                                </button>
+                                                <button class="btn btn-success rounded-pill btn-sm text-white" onclick="shareCat('{{ match.metadata.id }}','{{ match.metadata.name }}')">
+                                                    <i class="bi bi-share me-1"></i>Share
                                                 </button>
                                             </div>
                                         </div>
@@ -443,6 +457,28 @@
             }
         }
 
+        // Share single cat match
+        function shareCat(catId, catName) {
+            const imgUrl = `${window.location.origin}/cat_image/${encodeURIComponent(catId)}`;
+            const listUrl = `${window.location.origin}/view-found-cats?q=${encodeURIComponent(catId)}`;
+            const text = `Potential match: ${catName || 'Cat'} (ID: ${catId})`;
+            const shareUrl = listUrl;
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Pet ID Malaysia - Match',
+                    text,
+                    url: shareUrl
+                }).catch(() => {});
+            } else {
+                const payload = `${text}\n${shareUrl}\nImage: ${imgUrl}`;
+                navigator.clipboard.writeText(payload).then(() => {
+                    showNotification('Link Copied', 'Match link copied to clipboard!', 'success');
+                }).catch(() => {
+                    showNotification('Error', 'Unable to copy match link.', 'error');
+                });
+            }
+        }
+
         // Download results function
         function downloadResults() {
             // In a real application, this would generate and download a PDF report
@@ -497,11 +533,19 @@
                     this.style.transform = 'translateY(-5px)';
                     this.style.boxShadow = '0 10px 30px rgba(0,0,0,0.15)';
                 });
-
                 card.addEventListener('mouseleave', function() {
                     this.style.transform = 'translateY(0)';
                     this.style.boxShadow = '0 0.5rem 1rem rgba(0,0,0,0.15)';
                 });
+            });
+        });
+        // Set progress widths from data-score to avoid inline CSS parsing issues
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.progress-bar[data-score]').forEach(el => {
+                const v = parseFloat(el.getAttribute('data-score') || '0');
+                if (!isNaN(v)) {
+                    el.style.width = v + '%';
+                }
             });
         });
     </script>

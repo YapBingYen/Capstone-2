@@ -71,59 +71,22 @@
         <div class="container">
             <ul class="nav nav-tabs mb-4" id="profileTabs" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active text-dark" id="lost-tab" data-bs-toggle="tab" data-bs-target="#lost" type="button" role="tab">
-                        <i class="bi bi-search-heart me-2"></i>Lost Cats Reported
-                        <span class="badge bg-secondary ms-2">{{ lost_cats|length }}</span>
+                    <button class="nav-link active text-dark" id="found-tab" data-bs-toggle="tab" data-bs-target="#found" type="button" role="tab">
+                        <i class="bi bi-camera me-2"></i>Found Cats Reported
+                        <span class="badge bg-secondary ms-2">{{ found_cats|length }}</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link text-dark" id="found-tab" data-bs-toggle="tab" data-bs-target="#found" type="button" role="tab">
-                        <i class="bi bi-camera me-2"></i>Found Cats Reported
-                        <span class="badge bg-secondary ms-2">{{ found_cats|length }}</span>
+                    <button class="nav-link text-dark" id="lost-tab" data-bs-toggle="tab" data-bs-target="#lost" type="button" role="tab">
+                        <i class="bi bi-search-heart me-2"></i>Lost Cats Reported
+                        <span class="badge bg-secondary ms-2">{{ lost_cats|length }}</span>
                     </button>
                 </li>
             </ul>
 
             <div class="tab-content" id="profileTabsContent">
-                <!-- Lost Cats Tab -->
-                <div class="tab-pane fade show active" id="lost" role="tabpanel">
-                    <div class="d-flex align-items-center mb-3">
-                        <h5 class="mb-0 text-dark"><i class="bi bi-search-heart me-2"></i>Lost Cats Reported</h5>
-                        <span class="badge bg-secondary ms-2">{{ lost_cats|length }}</span>
-                    </div>
-                    {% if lost_cats %}
-                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                        {% for cat in lost_cats %}
-                        <div class="col">
-                            <div class="card h-100 shadow-sm border-0">
-                                <div class="position-relative">
-                                    <img src="{{ url_for('serve_cat_image', cat_id=cat.id) }}" class="card-img-top" alt="{{ cat.name }}" style="height: 250px; object-fit: cover;">
-                                    <span class="position-absolute top-0 end-0 m-2 badge bg-danger">Lost</span>
-                                </div>
-                                <div class="card-body">
-                                    <h5 class="card-title">{{ cat.name }}</h5>
-                                    <p class="card-text text-muted small"><i class="bi bi-geo-alt me-1"></i>{{ cat.location }}</p>
-                                    <p class="card-text small">{{ cat.profile_summary }}</p>
-                                    <p class="card-text small text-muted">Reported on: {{ cat.date_lost }}</p>
-                                </div>
-                                <div class="card-footer bg-white border-0">
-                                    <a href="{{ url_for('view_lost_cats') }}?q={{ cat.id }}" class="btn btn-outline-primary btn-sm w-100">View Details</a>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <div class="text-center py-5">
-                        <i class="bi bi-clipboard-x display-1 text-muted"></i>
-                        <p class="mt-3 text-muted">You haven't reported any lost cats yet.</p>
-                        <a href="{{ url_for('lost_cat') }}" class="btn btn-primary mt-2">Report a Lost Cat</a>
-                    </div>
-                    {% endif %}
-                </div>
-
                 <!-- Found Cats Tab -->
-                <div class="tab-pane fade" id="found" role="tabpanel">
+                <div class="tab-pane fade show active" id="found" role="tabpanel">
                     <div class="d-flex align-items-center mb-3">
                         <h5 class="mb-0 text-dark"><i class="bi bi-camera me-2"></i>Found Cats Reported</h5>
                         <span class="badge bg-secondary ms-2">{{ found_cats|length }}</span>
@@ -155,6 +118,43 @@
                         <i class="bi bi-clipboard-x display-1 text-muted"></i>
                         <p class="mt-3 text-muted">You haven't reported any found cats yet.</p>
                         <a href="{{ url_for('found_cat') }}" class="btn btn-success mt-2">Report a Found Cat</a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Lost Cats Tab -->
+                <div class="tab-pane fade" id="lost" role="tabpanel">
+                    <div class="d-flex align-items-center mb-3">
+                        <h5 class="mb-0 text-dark"><i class="bi bi-search-heart me-2"></i>Lost Cats Reported</h5>
+                        <span class="badge bg-secondary ms-2">{{ lost_cats|length }}</span>
+                    </div>
+                    {% if lost_cats %}
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                        {% for cat in lost_cats %}
+                        <div class="col">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="position-relative">
+                                    <img src="{{ url_for('serve_cat_image', cat_id=cat.id) }}" class="card-img-top" alt="{{ cat.name }}" style="height: 250px; object-fit: cover;">
+                                    <span class="position-absolute top-0 end-0 m-2 badge bg-danger">Lost</span>
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ cat.name }}</h5>
+                                    <p class="card-text text-muted small"><i class="bi bi-geo-alt me-1"></i>{{ cat.location }}</p>
+                                    <p class="card-text small">{{ cat.profile_summary }}</p>
+                                    <p class="card-text small text-muted">Reported on: {{ cat.date_lost }}</p>
+                                </div>
+                                <div class="card-footer bg-white border-0">
+                                    <a href="{{ url_for('view_lost_cats') }}?q={{ cat.id }}" class="btn btn-outline-primary btn-sm w-100">View Details</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-clipboard-x display-1 text-muted"></i>
+                        <p class="mt-3 text-muted">You haven't reported any lost cats yet.</p>
+                        <a href="{{ url_for('lost_cat') }}" class="btn btn-primary mt-2">Report a Lost Cat</a>
                     </div>
                     {% endif %}
                 </div>
