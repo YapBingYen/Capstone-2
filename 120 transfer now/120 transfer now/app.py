@@ -20,6 +20,8 @@ import json
 from datetime import datetime
 import logging
 from geopy.geocoders import Nominatim
+import shutil
+from storage import get_storage, StorageError
 
 # Configure TensorFlow image data format to ensure compatibility
 tf.keras.backend.set_image_data_format('channels_last')
@@ -42,6 +44,7 @@ HAAR_PATH = os.path.join(os.path.dirname(__file__), 'static', 'models', 'haarcas
 DATASET_PATH = os.environ.get('DATASET_PATH', r"D:\Cursor AI projects\Capstone2.1\dataset_individuals_cropped")
 FOUND_CATS_PATH = r"D:\Cursor AI projects\Capstone2.1\120 transfer now\120 transfer now\found_cats_dataset"  # Path for found cats
 LOST_CATS_PATH = r"D:\Cursor AI projects\Capstone2.1\120 transfer now\120 transfer now\lost_cats_dataset"  # Path for lost cats
+REUNITED_CATS_PATH = r"D:\Cursor AI projects\Capstone2.1\120 transfer now\120 transfer now\reunited_cats_dataset"  # Path for reunited cats
 APP_DIR = os.path.dirname(__file__)
 CACHE_DIR = os.path.abspath(os.path.join(APP_DIR, '..', '..'))
 EMBEDDINGS_CACHE = os.path.join(CACHE_DIR, 'cat_embeddings_cache.npy')
@@ -59,6 +62,15 @@ app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(FOUND_CATS_PATH, exist_ok=True)
 os.makedirs(LOST_CATS_PATH, exist_ok=True)
+os.makedirs(REUNITED_CATS_PATH, exist_ok=True)
+
+# Initialize storage backend (S3 or local data folder)
+try:
+    storage = get_storage()
+    logger.info("✅ Storage backend initialized")
+except Exception as e:
+    logger.warning(f"⚠️ Storage init failed, falling back to local paths: {e}")
+    storage = None
 
 # Global variables for model and database
 model = None
@@ -767,6 +779,13 @@ def initialize_system():
         recognition_system.start_background_index()
 
     logger.info("✅ System initialized successfully!")
+    # Ensure any previously reunited cats are stored in the reunited dataset
+    try:
+        migrated = migrate_reunited_images()
+        if migrated > 0:
+            logger.info(f"🧹 Migrated {migrated} reunited cat image(s) to {REUNITED_CATS_PATH}")
+    except Exception as e:
+        logger.warning(f"⚠️ Reunited migration skipped: {e}")
     return True
 
 # Allowed file extensions
@@ -924,19 +943,23 @@ def profile():
     # Collect cats reported by this user
     lost_cats = []
     found_cats = []
+    reunited_cats = []
     try:
         for k, v in recognition_system.cat_metadata.items():
             owner = v.get('owner_username')
             founder = v.get('founder_username')
             status = v.get('status')
-            if status == 'lost' and owner == username:
+            is_reunited = bool(v.get('reunited', False))
+            if status == 'lost' and owner == username and not is_reunited:
                 lost_cats.append(v)
-            if status == 'found' and founder == username:
+            if status == 'found' and founder == username and not is_reunited:
                 found_cats.append(v)
+            if is_reunited and (owner == username or founder == username):
+                reunited_cats.append(v)
     except Exception:
         pass
 
-    return render_template('profile.html', user=user, lost_cats=lost_cats, found_cats=found_cats)
+    return render_template('profile.html', user=user, lost_cats=lost_cats, found_cats=found_cats, reunited_cats=reunited_cats)
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -1070,12 +1093,21 @@ def upload_found_cat():
 
         # Check if file is allowed
         if file and allowed_file(file.filename):
-            # Save found cat image
             filename = secure_filename(file.filename or "found.jpg")
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"found_cat_{timestamp}_{filename}"
-            filepath = os.path.join(FOUND_CATS_PATH, filename)
-            file.save(filepath)
+            image_url = None
+            filepath = None
+            if storage:
+                try:
+                    image_url = storage.upload_fileobj(file.stream, f"found/{filename}")
+                except Exception as e:
+                    logger.warning(f"⚠️ S3 upload failed, saving locally: {e}")
+                    filepath = os.path.join(FOUND_CATS_PATH, filename)
+                    file.save(filepath)
+            else:
+                filepath = os.path.join(FOUND_CATS_PATH, filename)
+                file.save(filepath)
 
             logger.info(f"📤 Found cat uploaded: {filename}")
 
@@ -1104,6 +1136,7 @@ def upload_found_cat():
                 recognition_system.cat_metadata[cat_id] = {
                     'filename': filename,
                     'image_path': filepath,
+                    'image_url': image_url,
                     'id': cat_id,
                     'name': cat_name if cat_name else f"Found Cat {timestamp}",
                     'location': location,
@@ -1284,7 +1317,7 @@ def api_found_cats_map():
                         'name': cat.get('name'),
                         'lat': cat.get('lat'),
                         'lng': cat.get('lng'),
-                        'image_url': url_for('serve_cat_image', cat_id=cat.get('id')),
+                        'image_url': (cat.get('image_url') or url_for('serve_cat_image', cat_id=cat.get('id'))),
                         'location': cat.get('location'),
                         'date_found': cat.get('date_found'),
                         'description': cat.get('description', ''),
@@ -1319,6 +1352,31 @@ def mark_reunited(cat_id):
         recognition_system.cat_metadata[cat_id]['reunited_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         recognition_system.cat_metadata[cat_id]['owner_name'] = owner_name
         recognition_system.cat_metadata[cat_id]['reunion_story'] = reunion_story
+
+        # Move image to reunited dataset directory
+        try:
+            src_path = cat.get('image_path')
+            src_url = cat.get('image_url')
+            base = os.path.basename(src_path or (src_url or 'image.jpg'))
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            dest_key = f"reunited/reunited_{timestamp}_{base}"
+            if storage and (src_url or src_path):
+                try:
+                    new_url = storage.move(src_url or src_path, dest_key)
+                    recognition_system.cat_metadata[cat_id]['image_url'] = new_url
+                    recognition_system.cat_metadata[cat_id]['image_path'] = ''
+                except Exception as e:
+                    logger.warning(f"⚠️ S3 move failed, using local move: {e}")
+                    if src_path and os.path.exists(src_path):
+                        dest_path = os.path.join(REUNITED_CATS_PATH, os.path.basename(dest_key))
+                        shutil.move(src_path, dest_path)
+                        recognition_system.cat_metadata[cat_id]['image_path'] = dest_path
+            elif src_path and os.path.exists(src_path):
+                dest_path = os.path.join(REUNITED_CATS_PATH, os.path.basename(dest_key))
+                shutil.move(src_path, dest_path)
+                recognition_system.cat_metadata[cat_id]['image_path'] = dest_path
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to move image for reunited cat {cat_id}: {e}")
         
         # Save updated metadata
         with open(METADATA_CACHE, 'w') as f:
@@ -1337,11 +1395,43 @@ def mark_reunited(cat_id):
         flash('An error occurred. Please try again.', 'error')
         return redirect(url_for('view_found_cats'))
 
+def migrate_reunited_images():
+    """Move any reunited cat images from found/lost datasets into the reunited dataset directory"""
+    moved = 0
+    try:
+        for cid, meta in list(recognition_system.cat_metadata.items()):
+            if not isinstance(meta, dict):
+                continue
+            if not meta.get('reunited', False):
+                continue
+            img = meta.get('image_path')
+            if not img or not os.path.exists(img):
+                continue
+            # Only move if not already in reunited folder
+            if os.path.dirname(img) != REUNITED_CATS_PATH:
+                base = os.path.basename(img)
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                dest = os.path.join(REUNITED_CATS_PATH, f"reunited_{timestamp}_{base}")
+                try:
+                    shutil.move(img, dest)
+                    recognition_system.cat_metadata[cid]['image_path'] = dest
+                    moved += 1
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to migrate image for {cid}: {e}")
+        if moved > 0:
+            with open(METADATA_CACHE, 'w') as f:
+                json.dump(recognition_system.cat_metadata, f)
+            # also refresh found cats metadata to exclude reunited
+            save_found_cats_metadata()
+    except Exception as e:
+        logger.warning(f"⚠️ Migration encountered an error: {e}")
+    return moved
+
 def save_found_cats_metadata():
     """Save found cats metadata to separate file"""
     try:
         found_cats = {k: v for k, v in recognition_system.cat_metadata.items() 
-                     if v.get('status') == 'found'}
+                     if v.get('status') == 'found' and not v.get('reunited', False)}
         with open(FOUND_CATS_METADATA, 'w') as f:
             json.dump(found_cats, f, indent=2)
         logger.info(f"✅ Saved {len(found_cats)} found cats to metadata file")
@@ -1396,8 +1486,18 @@ def upload_lost_cat():
             filename = secure_filename(file.filename or "lost.jpg")
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"lost_cat_{timestamp}_{filename}"
-            filepath = os.path.join(LOST_CATS_PATH, filename)
-            file.save(filepath)
+            image_url = None
+            filepath = None
+            if storage:
+                try:
+                    image_url = storage.upload_fileobj(file.stream, f"lost/{filename}")
+                except Exception as e:
+                    logger.warning(f"⚠️ S3 upload failed, saving locally: {e}")
+                    filepath = os.path.join(LOST_CATS_PATH, filename)
+                    file.save(filepath)
+            else:
+                filepath = os.path.join(LOST_CATS_PATH, filename)
+                file.save(filepath)
 
             embedding = recognition_system.extract_embedding(filepath)
             if embedding is not None:
@@ -1420,6 +1520,7 @@ def upload_lost_cat():
                 recognition_system.cat_metadata[cat_id] = {
                     'filename': filename,
                     'image_path': filepath,
+                    'image_url': image_url,
                     'id': cat_id,
                     'name': cat_name if cat_name else f"Lost Cat {timestamp}",
                     'location': location,
@@ -1587,6 +1688,9 @@ def serve_cat_image(cat_id):
         abort(404)
 
     image_path = metadata.get('image_path')
+    image_url = metadata.get('image_url')
+    if image_url:
+        return redirect(image_url)
     if not image_path or not os.path.exists(image_path):
         abort(404)
 
@@ -1624,6 +1728,14 @@ def api_health():
             'img_size': IMG_SIZE
         }
         return jsonify(status)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/fix_reunited', methods=['POST', 'GET'])
+def api_fix_reunited():
+    try:
+        count = migrate_reunited_images()
+        return jsonify({'status': 'ok', 'migrated': count})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

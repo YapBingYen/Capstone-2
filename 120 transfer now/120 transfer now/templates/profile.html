@@ -82,6 +82,12 @@
                         <span class="badge bg-secondary ms-2">{{ lost_cats|length }}</span>
                     </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link text-dark" id="reunited-tab" data-bs-toggle="tab" data-bs-target="#reunited" type="button" role="tab">
+                        <i class="bi bi-heart-fill me-2"></i>Reunited
+                        <span class="badge bg-secondary ms-2">{{ reunited_cats|length }}</span>
+                    </button>
+                </li>
             </ul>
 
             <div class="tab-content" id="profileTabsContent">
@@ -155,6 +161,57 @@
                         <i class="bi bi-clipboard-x display-1 text-muted"></i>
                         <p class="mt-3 text-muted">You haven't reported any lost cats yet.</p>
                         <a href="{{ url_for('lost_cat') }}" class="btn btn-primary mt-2">Report a Lost Cat</a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Reunited Cats Tab -->
+                <div class="tab-pane fade" id="reunited" role="tabpanel">
+                    <div class="d-flex align-items-center mb-3">
+                        <h5 class="mb-0 text-dark"><i class="bi bi-heart-fill me-2"></i>Reunited Cats</h5>
+                        <span class="badge bg-secondary ms-2">{{ reunited_cats|length }}</span>
+                    </div>
+                    {% if reunited_cats %}
+                    <div class="row row-cols-1 row-cols-md-2 g-4">
+                        {% for cat in reunited_cats %}
+                        <div class="col">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0"><i class="bi bi-heart-fill me-2"></i>{{ cat.name }}</h6>
+                                    <span class="badge bg-light text-success"><i class="bi bi-check-circle me-1"></i>Reunited</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex gap-3">
+                                        <img src="{{ url_for('serve_cat_image', cat_id=cat.id) }}" alt="{{ cat.name }}" style="width: 120px; height: 120px; object-fit: cover; border-radius: 0.5rem;">
+                                        <div class="flex-grow-1">
+                                            {% if cat.owner_name %}
+                                            <p class="small text-muted mb-1"><i class="bi bi-person-fill me-1"></i><strong>Owner:</strong> {{ cat.owner_name }}</p>
+                                            {% endif %}
+                                            {% if cat.reunited_date %}
+                                            <p class="small text-muted mb-1"><i class="bi bi-calendar-check me-1"></i><strong>Reunited:</strong> {{ cat.reunited_date }}</p>
+                                            {% endif %}
+                                            {% if cat.location %}
+                                            <p class="small text-muted mb-1"><i class="bi bi-geo-alt-fill me-1"></i><strong>Found At:</strong> {{ cat.location }}</p>
+                                            {% endif %}
+                                            {% if cat.reunion_story %}
+                                            <p class="small text-muted mb-0"><i class="bi bi-chat-heart-fill me-1"></i><strong>Story:</strong> {{ cat.reunion_story }}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-white border-0 d-flex justify-content-between">
+                                    <small class="text-muted"><i class="bi bi-tag me-1"></i>ID: {{ cat.id }}</small>
+                                    <a href="{{ url_for('reunited_cats') }}" class="btn btn-outline-success btn-sm">View All Reunions</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-heart display-6 text-muted"></i>
+                        <p class="mt-3 text-muted">No reunited cats yet.</p>
+                        <a href="{{ url_for('view_found_cats') }}" class="btn btn-primary mt-2">View Found Cats</a>
                     </div>
                     {% endif %}
                 </div>

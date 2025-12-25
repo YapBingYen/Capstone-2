@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: pet-id-malaysia-backend
+    env: docker
+    dockerfilePath: 120 transfer now/120 transfer now/Dockerfile
+    plan: starter
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: STORAGE_BACKEND
+        value: s3
+      - key: AWS_S3_BUCKET
+        value: your-bucket-name
+      - key: AWS_REGION
+        value: ap-southeast-1
+      - key: AWS_S3_PREFIX
+        value: pet-id
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
