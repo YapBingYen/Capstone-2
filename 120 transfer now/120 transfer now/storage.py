@@ -11,17 +11,35 @@ class StorageError(Exception):
 class LocalStorage:
     def __init__(self, base_dir: str):
         self.base_dir = base_dir
-        os.makedirs(self.base_dir, exist_ok=True)
+        self.app_dir = os.path.dirname(__file__)
+        self.found_dir = os.path.join(self.app_dir, 'found_cats_dataset')
+        self.lost_dir = os.path.join(self.app_dir, 'lost_cats_dataset')
+        self.reunited_dir = os.path.join(self.app_dir, 'reunited_cats_dataset')
+        for d in [self.base_dir, self.found_dir, self.lost_dir, self.reunited_dir]:
+            os.makedirs(d, exist_ok=True)
+
+    def _resolve_path(self, key: str) -> str:
+        # Map logical prefixes to the existing dataset folders for local runs
+        if key.startswith('found/'):
+            rel = key.split('/', 1)[1]
+            return os.path.join(self.found_dir, rel)
+        if key.startswith('lost/'):
+            rel = key.split('/', 1)[1]
+            return os.path.join(self.lost_dir, rel)
+        if key.startswith('reunited/'):
+            rel = key.split('/', 1)[1]
+            return os.path.join(self.reunited_dir, rel)
+        return os.path.join(self.base_dir, key)
 
     def upload_fileobj(self, fileobj, key: str) -> str:
-        dest_path = os.path.join(self.base_dir, key)
+        dest_path = self._resolve_path(key)
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
         with open(dest_path, 'wb') as f:
             shutil.copyfileobj(fileobj, f)
         return dest_path
 
     def move(self, src_path: str, dest_key: str) -> str:
-        dest_path = os.path.join(self.base_dir, dest_key)
+        dest_path = self._resolve_path(dest_key)
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
         shutil.move(src_path, dest_path)
         return dest_path

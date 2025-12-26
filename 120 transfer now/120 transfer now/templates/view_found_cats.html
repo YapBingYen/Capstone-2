@@ -518,7 +518,7 @@
     <div class="modal fade" id="reunionModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <form method="POST" id="reunionForm">
+                <form method="POST" id="reunionForm" autocomplete="off">
                     <div class="modal-header bg-success text-white">
                         <h5 class="modal-title">
                             <i class="bi bi-heart-fill me-2"></i>Mark as Reunited
@@ -538,7 +538,7 @@
                                 <i class="bi bi-person me-1"></i>Owner Name (Optional)
                             </label>
                             <input type="text" class="form-control" id="ownerName" name="owner_name" 
-                                   placeholder="Enter owner's name">
+                                   placeholder="Enter owner's name" autocomplete="off" autocapitalize="none" spellcheck="false">
                         </div>
 
                         <!-- Reunion Story -->
@@ -547,7 +547,7 @@
                                 <i class="bi bi-chat-heart me-1"></i>Reunion Story (Optional)
                             </label>
                             <textarea class="form-control" id="reunionStory" name="reunion_story" rows="4" 
-                                      placeholder="Share how the reunion happened..."></textarea>
+                                      placeholder="Share how the reunion happened..." autocomplete="off" autocapitalize="none" spellcheck="false"></textarea>
                             <div class="form-text">
                                 Share your success story to inspire others!
                             </div>

@@ -1100,9 +1100,13 @@ def upload_found_cat():
             filepath = None
             if storage:
                 try:
-                    image_url = storage.upload_fileobj(file.stream, f"found/{filename}")
+                    uploaded = storage.upload_fileobj(file.stream, f"found/{filename}")
+                    if str(uploaded).lower().startswith(('http://', 'https://')):
+                        image_url = uploaded
+                    else:
+                        filepath = uploaded
                 except Exception as e:
-                    logger.warning(f"⚠️ S3 upload failed, saving locally: {e}")
+                    logger.warning(f"⚠️ Storage upload failed, saving locally: {e}")
                     filepath = os.path.join(FOUND_CATS_PATH, filename)
                     file.save(filepath)
             else:
@@ -1317,7 +1321,7 @@ def api_found_cats_map():
                         'name': cat.get('name'),
                         'lat': cat.get('lat'),
                         'lng': cat.get('lng'),
-                        'image_url': (cat.get('image_url') or url_for('serve_cat_image', cat_id=cat.get('id'))),
+                        'image_url': (cat.get('image_url') if str(cat.get('image_url') or '').lower().startswith(('http://', 'https://')) else url_for('serve_cat_image', cat_id=cat.get('id'))),
                         'location': cat.get('location'),
                         'date_found': cat.get('date_found'),
                         'description': cat.get('description', ''),
@@ -1362,11 +1366,15 @@ def mark_reunited(cat_id):
             dest_key = f"reunited/reunited_{timestamp}_{base}"
             if storage and (src_url or src_path):
                 try:
-                    new_url = storage.move(src_url or src_path, dest_key)
-                    recognition_system.cat_metadata[cat_id]['image_url'] = new_url
-                    recognition_system.cat_metadata[cat_id]['image_path'] = ''
+                    new_loc = storage.move(src_url or src_path, dest_key)
+                    if str(new_loc).lower().startswith(('http://', 'https://')):
+                        recognition_system.cat_metadata[cat_id]['image_url'] = new_loc
+                        recognition_system.cat_metadata[cat_id]['image_path'] = ''
+                    else:
+                        recognition_system.cat_metadata[cat_id]['image_url'] = ''
+                        recognition_system.cat_metadata[cat_id]['image_path'] = new_loc
                 except Exception as e:
-                    logger.warning(f"⚠️ S3 move failed, using local move: {e}")
+                    logger.warning(f"⚠️ Storage move failed, using local move: {e}")
                     if src_path and os.path.exists(src_path):
                         dest_path = os.path.join(REUNITED_CATS_PATH, os.path.basename(dest_key))
                         shutil.move(src_path, dest_path)
@@ -1490,9 +1498,13 @@ def upload_lost_cat():
             filepath = None
             if storage:
                 try:
-                    image_url = storage.upload_fileobj(file.stream, f"lost/{filename}")
+                    uploaded = storage.upload_fileobj(file.stream, f"lost/{filename}")
+                    if str(uploaded).lower().startswith(('http://', 'https://')):
+                        image_url = uploaded
+                    else:
+                        filepath = uploaded
                 except Exception as e:
-                    logger.warning(f"⚠️ S3 upload failed, saving locally: {e}")
+                    logger.warning(f"⚠️ Storage upload failed, saving locally: {e}")
                     filepath = os.path.join(LOST_CATS_PATH, filename)
                     file.save(filepath)
             else:
@@ -1689,7 +1701,7 @@ def serve_cat_image(cat_id):
 
     image_path = metadata.get('image_path')
     image_url = metadata.get('image_url')
-    if image_url:
+    if image_url and str(image_url).lower().startswith(('http://', 'https://')):
         return redirect(image_url)
     if not image_path or not os.path.exists(image_path):
         abort(404)
